@@ -21,9 +21,11 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 execfile("lib/reststructure.py")
+execfile("lib/shared.py")
 
 # define program-wide variables
 MAX_FILE_SIZE = 100000
+MAX_PATCH_PROPERTIES = 1
 
 def clean_path(path):
         list = path.split('localhost')
@@ -134,7 +136,13 @@ def is_element_draft(jdata):
         if kind != None:
                 element = KIND_TO_ELEMENT.get(kind)
                 if element != None:
-			return element[1].rfind('draft') == len(element[1]) - 5
+			print "### DRAFT ### %s" % element[1]
+			list = element[1].split(' ')
+			if len(list) == 3 and list[1] == 'draft':
+				res =  float(BIGIP_VERSION['number']) >= float(list[2])
+                        	#print "Draft len: %s str: %s" % (len(list), list[1])
+                        	#print "BIG-IP version: %s str: %s res: %s" % ( BIGIP_VERSION['number'], list[2], res)
+				return res
         return False
 
 
@@ -180,11 +188,27 @@ def get_path(jdata, appName, partition):
 
 	return selfLink[start:end]
 
+
+### Remove:
+def get_fpath_from_element(jdata, name):
+	appName = jdata.get('subPath')
+	partition = jdata.get('partition')
+
+	if partition != None:
+		res = "/" + partition
+	else:
+		res = "/Common"
+
+	if appName != None:
+		res = res + "/" + appName + ".app"
+
+	return res + "/" + name
+
 def rewrite_reference_path( elements, type, fPath, appName, partition):
 
         if exists_element2(elements, type, fPath):
                 # This path need to be adapted
-                #print "------Path hit for fPath: %s" % fPath
+                print "------Path hit for fPath: %s" % fPath
                 s1 = '/'
                 if fPath.find(s1) < 0:
                         fPath = "/Common/" + fPath
@@ -200,10 +224,31 @@ def rewrite_reference_path( elements, type, fPath, appName, partition):
                         	parts1.insert(2, appName + ".app")
                 fPath = s1.join(parts1)
                 #val = val[:pos+1] + name + ".app" + val[pos:]
+		print "------New fPath: %s" % fPath
                 return fPath
         else:
-                print "Type: %s fPath: %s" % (type, fPath)
+                print "Not created -> Type: %s fPath: %s" % (type, fPath)
                 return ""
+
+def rewrite_reference_element( jdata, elements, type, fPath, appName, partition):
+
+        if exists_element2(elements, type, fPath):
+                # This path need to be adapted
+                print "------Path hit for fPath: %s" % fPath
+
+		if partition != "":
+			jdata['partition'] = partition
+		else:
+			del jdata['partition']
+
+                if appName != "":
+                        jdata['subPath'] = appName + ".app"
+                else:
+                        del jdata['subPath']
+
+        else:
+                print "Not created -> Type: %s fPath: %s" % (type, fPath)
+
 
 
 def adapt_reference_path(jdata, elements, appName, partition):
@@ -227,9 +272,9 @@ def adapt_reference_path(jdata, elements, appName, partition):
                                                 #START - Check for sub elements
                                                 subList = ref[1].split('-')
                                                 if len(subList) == 2:
-                                                        subName = fPath.get(subList[1])
-                                                        if subName != None:
-                                                                fPath = subName
+                                                        name = fPath.get(subList[1])
+                                                        if name != None:
+                                                                fPath = name
                                                	#END - Check for sub elements
 						
 						res = rewrite_reference_path(elements, type, fPath, appName, partition)
@@ -255,34 +300,26 @@ def adapt_reference_path(jdata, elements, appName, partition):
 										adapt_subPath(element, appName, False)
 
                                 elif ref[1].find('list') == 0:
-                                        #print "Item to get fPath: %s" % item
+                                        print "Item to get fPath: %s" % item
                                         list = jdata.get(item)
                                         if list != None:
 						l = len(list)
 						for i in range( 0, l ):
-							fPath = list[i]
-
 		                                        #START - Check for sub elements
 		                                        subList = ref[1].split('-')
-		                                        if len(subList) == 2:
-		                                                subName = fPath.get(subList[1])
+		                                        if len(subList) == 2: # A list of structured properties
+		                                                subName = list[i].get(subList[1])
 		                                                if subName != None:
-		                                                        fPath = subName
-		                                        #END - Check for sub elements
-	
-							if fPath != None:	
+									fPath = get_fpath_from_element(list[i], subName)
+									rewrite_reference_element( list[i], elements, type, fPath, appName, partition)
+                                                        #END - Check for sub elements
+ 
+
+							else: # A simple list like of properties
+								fPath = list[i]
 								fPath = addCommon2Path(fPath)
-		
-		                                                res = rewrite_reference_path(elements, type, fPath, appName, partition)
-		                                                if res != "":
-		                                                        if len(subList) == 2:
-		                                                                list[i][subList[1]] = res
-										if partition != "" and list[i].get('partition') != None:
-											list[i]['partition'] = partition
-
-		                                                        else:
-		                                                                list[i] = res
-
+								res = rewrite_reference_path(elements, type, fPath, appName, partition)
+								list[i] = res
 
 
 
@@ -304,13 +341,26 @@ def adapt_reference_path(jdata, elements, appName, partition):
 
 def create_element(bigip, jdata, path):
 	fullPath = jdata.get('fullPath')
-	if fullPath == None:
-		print "THIS PART WAS REMOVED !!!!"
-		#response = bigip.put('%s%s' % (BIGIP_URL_BASE, path), data=json.dumps(jdata))
-	if jdata.get('put') != None:
+	command =  jdata.get('command') # command need to be POST
+	methods = jdata.get('methods')
+	if fullPath == None and command == None: # This are always existing static elements or PATCH requests
+		#print "THIS PART WAS REMOVED !!!!"
+		#print "Number of properties in JSON object: %s" % len(jdata)
+		if len(jdata) <= MAX_PATCH_PROPERTIES: # We need just to change the properties in the JSON object
+			if BIGIP_VERSION['digits'][0] != 11: # PATCH is needed
+				response = bigip.patch('%s%s' % (BIGIP_URL_BASE, path), data=json.dumps(jdata))
+			else: # In version 11 PUT is needed
+				response = bigip.put('%s%s' % (BIGIP_URL_BASE, path), data=json.dumps(jdata))
+		else:
+			response = bigip.put('%s%s' % (BIGIP_URL_BASE, path), data=json.dumps(jdata))
+	elif methods != None:
 		# Element has been deployed already and should be redeployed.
-		del jdata['put']
-                response = bigip.put('%s%s' % (BIGIP_URL_BASE, path + "/" + jdata.get('name')), data=json.dumps(jdata))
+		del jdata['methods']
+		if methods == 'put':
+                	response = bigip.put('%s%s' % (BIGIP_URL_BASE, path + "/" + jdata.get('name')), data=json.dumps(jdata))
+                elif methods == 'patch':
+                        response = bigip.patch('%s%s' % (BIGIP_URL_BASE, path + "/" + jdata.get('name')), data=json.dumps(jdata))
+
 	else:
                 response = bigip.post('%s%s' % (BIGIP_URL_BASE, path), data=json.dumps(jdata))
         #print "Response code: %s" % response.status_code
@@ -318,6 +368,7 @@ def create_element(bigip, jdata, path):
 		exit("Authentication failed!")
 	elif response.status_code != 200:
                 print "Response: %s" % response.content
+		print "Path: %s" % path
 		print "Json Dump to send:"
                 print json.dumps(jdata, sort_keys = True, indent = 4, separators=(',', ': '))	
                 return False
@@ -401,6 +452,9 @@ bigip.auth = (username, passwd)
 bigip.verify = False
 bigip.headers.update({'Content-Type' : 'application/json'})
 
+
+BIGIP_VERSION = get_version(bigip, BIGIP_URL_BASE) 
+
 # Open json blob file
 f = open ( filename, 'r')
 sts = f.read(100000)
@@ -410,6 +464,10 @@ partition = ""
 
 # No Trans ID
 transID = -1
+
+# No iApp
+iApp = ""
+
 
 items = sts.split('\n\n')
 
@@ -466,7 +524,7 @@ for item in items:
 				# The element was already deployed.
 				# Therefore we need to deploy it via PUT.
 				#print "Found Element." 
-				jdata['put'] = "true"
+				jdata['methods'] = "put"
 			else:
 				# The element is new and need to be added to the list:
 				#print "Element is not in list."
@@ -478,16 +536,16 @@ for item in items:
 		if is_element_moveable(jdata):
 			adapt_subPath(jdata, iApp, is_element_draft(jdata))
 
-		#print "Headers in request:"
 	        create_element(bigip, jdata, path)
 
-		if is_element_draft(jdata) and jdata.get('status') != None and jdata.get('status') == "published":
+		# Draft elements need to be published. Needed for policies since v12.1
+		if is_element_draft(jdata) and ( jdata.get('status') == None or jdata.get('status') == "published" ):
 			partition = jdata.get('partition')
 			if partition == None:
 				partition = "Common"
 			subPath = jdata.get('subPath')
 			name = jdata.get('name')
-			#print " --- -- Draft: %s" % "/" + partition + "/" + subPath + "/" + name
+			print " --- -- Draft: %s" % "/" + partition + "/" + subPath + "/" + name
 			jd = {"command": "publish"}
 			jd['name'] = "/" + partition + "/" + subPath + "/" + name
 			create_element(bigip, jd, path)

@@ -5,6 +5,8 @@ bigip-jb
    :maxdepth: 2
    :caption: Contents:
 
+   howto.rst
+
 Introduction:
 =============
 
@@ -21,13 +23,6 @@ The project based mainly on two python scripts:
 ``sendjb.py``
    This will send the finalized configuration from a json blob (.jb) file towards the targeted BIG-IP.
 
-Limitations
------------
-
-Since the project based on the REST iControl API of the BIG-IP, the minimum required
-version of the BIG-IP is v11.6.x.
-
-I did this implementation based on v12.1.1 and I already recognized, that some additional work is necessary to get it running on v11.6.x as well. Therefore please use it on v12 only for now.
 
 To your attention
 -----------------
