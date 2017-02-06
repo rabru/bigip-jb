@@ -40,7 +40,8 @@ def name2path(name):
 def get_reference_link(jitem, referenceTag):
         if jitem.get(referenceTag) != None:
                 path = jitem[referenceTag]['link']
-                return clean_path(path)
+		if path != None:
+                	return clean_path(path)
 	return ""
 
 def get_element(bigip, path):
@@ -51,7 +52,7 @@ def get_element(bigip, path):
                 return None
         return response.content
 
-def get_subpath(bigip, name, path):
+def get_subpath(bigip, path, name):
 	if path[-1] == '*':
 		path = path[0:-2]
 		#print "New Path in subpath: %s" % path
@@ -68,7 +69,7 @@ def get_subpath(bigip, name, path):
 
 def concat_path(bigip, pstart, pend):
         if pstart[-1] == '*':
-                return get_subpath(bigip, pend, pstart)
+                return get_subpath(bigip, pstart, pend)
         else:
                 return pstart + '/' + pend
 
@@ -172,6 +173,7 @@ def write_element(bigip, file, path, iteration):
                 if refList != None:
                         #############################work#######################
                         for item in refList:
+				print "Item: %s" % item
 				ref = refList.get(item)
                                 type = ref[0]
                                 if ref[1].find("direct") == 0:
@@ -189,28 +191,37 @@ def write_element(bigip, file, path, iteration):
 					if name != None:
                                                 #END - Check for sub elements
 						#print "name %s" % name
-						path = name2path(name)
+						pname = name2path(name)
 						pstart = ref[2].get(type)
 						if pstart != None:
-							path = concat_path(bigip, pstart, path)
+							path = concat_path(bigip, pstart, pname)
 							if path != None:
 								write_element(bigip, file, path, iteration + 1)
 								write_sep(file)
 
                                 elif ref[1].find("items") == 0:
-                                        #print "Item to get name: %s" % item
+                                        print "Item to get name: %s" % item
                                         list = jelement.get(item)
 					if list != None and list.get('items') != None:
                         			for element in list['items']:
 							path = get_reference_link(element, "nameReference")
+							print "Path from link: %s" % path
+							if path == "": # Only on v12 and higher we have a nameReference available
+								name = element.get('name')
+								path = ref[2].get(type)
+								if name != None and path != None:
+                                                                        path = concat_path(bigip, path, name)
+                                                                        print "PATH_concat = %s" % path
+									#path = get_subpath(bigip, path, name)
+									#print "PATH_sub = %s" % path
+									if path == None:
+										path = ""
+									print "SubPath: %s " % path
+								else:
+									path = ""
 							if path != "":
 								write_element(bigip, file, path, iteration + 1)
 								write_sep(file)
-
-#                                			response = get_element(bigip, get_reference_link(element, "nameReference"))
-#                                			if response != None:
-#                                        			write_json(file, json.loads(response))
-#								write_sep(file)
 
                                 elif ref[1].find("list") == 0:
                                         #print "Item to get name: %s" % item

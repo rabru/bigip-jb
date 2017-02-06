@@ -1,0 +1,38 @@
+{
+  "kind": "tm:sys:dns:dnsstate",
+  "selfLink": "https://localhost/mgmt/tm/sys/dns?ver=12.1.1",
+  "description": "configured-by-dhcp",
+  "nameServers": [
+    "10.128.10.2"
+  ],
+  "numberOfDots": 0,
+  "search": [
+    "localdomain",
+    "mgmt.ip"
+  ]
+}
+
+{
+  "kind": "tm:sys:ntp:ntpstate",
+  "selfLink": "https://localhost/mgmt/tm/sys/ntp?ver=12.1.1",
+  "servers": [
+    "2.de.pool.ntp.org",
+    "1.de.pool.ntp.org"
+  ],
+  "timezone": "Europe/Berlin",
+  "restrictReference": {
+    "link": "https://localhost/mgmt/tm/sys/ntp/restrict?ver=12.1.1",
+    "isSubcollection": true
+  }
+}
+
+{
+  "selfLink": "https://localhost/mgmt/tm/sys/global-settings?ver=12.1.1",
+  "hostname": "bigip04.local"
+}
+
+{
+  "selfLink": "https://localhost/mgmt/tm/sys/db/ui.system.preferences.recordsperscreen?ver=12.0.0",
+  "value": "55"
+}
+
