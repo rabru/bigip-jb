@@ -23,7 +23,6 @@ The project based mainly on two python scripts:
 ``sendjb.py``
    This will send the finalized configuration from a json blob (.jb) file towards the targeted BIG-IP.
 
-
 To your attention
 -----------------
 
