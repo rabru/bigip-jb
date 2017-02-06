@@ -2,7 +2,6 @@
 ###################################
 ## Release Notes
 
-
 v0.2.1:
  - Add lib/shared.py
  - sendjb.py: Add Version awareness
