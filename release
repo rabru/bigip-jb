@@ -1,6 +1,15 @@
-## bigip-jb v0.2.1
+## bigip-jb v0.2.2
 ###################################
 ## Release Notes
+
+v0.2.2:
+ - Move restStructure.py and shared.py to root path
+ - remove lib directory
+ - getjb.py: Change way of import of restStructure and shared
+ - sendjb.py: Change way of import of restStructure and shared
+ - getjb.py: Add objectList to keep track of the imported objects
+ - getjb.py: Skip all objects, which are already imported
+
 
 v0.2.1:
  - Add lib/shared.py

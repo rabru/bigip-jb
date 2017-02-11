@@ -20,8 +20,9 @@ import sys, getpass, string, requests, json
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-execfile("lib/reststructure.py")
-execfile("lib/shared.py")
+import restStructure
+import shared
+
 
 # define program-wide variables
 MAX_FILE_SIZE = 100000
@@ -34,8 +35,8 @@ def clean_path(path):
 
 def create_element_list():
 	list = {}
-	for el in ELEMENT_TYPE:
-		eList = ELEMENT_TYPE[el]
+	for el in restStructure.ELEMENT_TYPE:
+		eList = restStructure.ELEMENT_TYPE[el]
 		keyList = eList.keys()
 		for item in keyList:
 			list[item] = []
@@ -50,7 +51,7 @@ def path2type(path):
 	print "Path: %s" % path
 	list = path.split(s)
 	print "Path join: %s" % s.join(list[:4])
-	typeList = ELEMENT_TYPE.get(s.join(list[:4]))
+	typeList = restStructure.ELEMENT_TYPE.get(s.join(list[:4]))
 	if typeList != None:
 		sList = sorted(typeList.iteritems(), key=lambda (k,v): (v,k), reverse=True)
 		for key, value in sList:
@@ -76,7 +77,7 @@ def add_element(elements, path, fpath):
  
 
 def exists_element(elements, path, fpath):
-	print "function exists_element path -%s-" % path 
+	#print "function exists_element path -%s-" % path 
         type = path2type(path)
 	if type != None:
 		try:
@@ -124,7 +125,7 @@ def adapt_subPath(jdata, appName, draft):
 def is_element_moveable(jdata):
         kind = jdata.get('kind')
         if kind != None:
-                element = KIND_TO_ELEMENT.get(kind)
+                element = restStructure.KIND_TO_ELEMENT.get(kind)
                 if element != None:
                         if element[3] != None and not element[3]:
                                 return False
@@ -134,7 +135,7 @@ def is_element_moveable(jdata):
 def is_element_draft(jdata):
         kind = jdata.get('kind')
         if kind != None:
-                element = KIND_TO_ELEMENT.get(kind)
+                element = restStructure.KIND_TO_ELEMENT.get(kind)
                 if element != None:
 			print "### DRAFT ### %s" % element[1]
 			list = element[1].split(' ')
@@ -259,7 +260,7 @@ def adapt_reference_path(jdata, elements, appName, partition):
 	kind = jdata.get('kind')
 	if kind != None: ## The element has sub elements where we need to adapt the path towards the elements.
 		print "Kind: %s" % kind
-		refList = REFERENCE_KIND_LIST.get(kind);
+		refList = restStructure.REFERENCE_KIND_LIST.get(kind);
 		if refList != None:
 			#############################work#######################	
 			for item in refList:
@@ -346,7 +347,7 @@ def create_element(bigip, jdata, path):
 	if fullPath == None and command == None: # This are always existing static elements or PATCH requests
 		#print "THIS PART WAS REMOVED !!!!"
 		#print "Number of properties in JSON object: %s" % len(jdata)
-		if len(jdata) <= MAX_PATCH_PROPERTIES: # We need just to change the properties in the JSON object
+		if len(jdata) <= MAX_PATCH_PROPERTIES: # We need just to change this property in the JSON object
 			if BIGIP_VERSION['digits'][0] != 11: # PATCH is needed
 				response = bigip.patch('%s%s' % (BIGIP_URL_BASE, path), data=json.dumps(jdata))
 			else: # In version 11 PUT is needed
@@ -423,6 +424,9 @@ def replace_parameters(item, parameters):
                 item = item.replace(param, parameters[param] )
 	return item
 
+################
+##### MAIN #####
+################
 
 # Parse Parameter
 ex = False
@@ -453,7 +457,7 @@ bigip.verify = False
 bigip.headers.update({'Content-Type' : 'application/json'})
 
 
-BIGIP_VERSION = get_version(bigip, BIGIP_URL_BASE) 
+BIGIP_VERSION = shared.get_version(bigip, BIGIP_URL_BASE) 
 
 # Open json blob file
 f = open ( filename, 'r')
@@ -479,9 +483,13 @@ for item in items:
 		continue
 	jdata = {}
 	try:
-        	jdata = json.loads(item)
+		if parameters != None:
+			jdata = json.loads(replace_parameters(item, parameters))
+		else:
+        		jdata = json.loads(item)
 	except ValueError:
 		print "Json parser Error"
+		print item
 		#continue
 	if jdata.get('kind') == 'jb-header':
 		print "Is Json-Blob-Header!"
@@ -510,9 +518,6 @@ for item in items:
 		parameters = jdata.get('parameters')
 
 	else:
-		if parameters != None:
-			jdata = json.loads(replace_parameters(item, parameters))
-		#print '-------------'
 		path = get_path(jdata, iApp, partition)
        		#print "path: ", path
         	remove_elements(jdata)

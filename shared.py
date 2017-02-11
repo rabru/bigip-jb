@@ -16,6 +16,8 @@
 ####################################################################
 ### Functions for getjb.py and sendjb.py
 
+import json
+
 def get_version(bigip, basePath):
 	version = { 'digit': [0, 0, 0], 'string': '', 'number': 0.0, 'product': ''}
         response = bigip.get(basePath + '/mgmt/tm/sys/version')
@@ -36,7 +38,6 @@ def get_version(bigip, basePath):
 						if buf1 != None:
 							version['digits'] = buf1.split('.')
 							if len(version['digits']) == 3:
-								print "buf1: %s" % buf1
 								version['string'] = buf1
 								version['number'] = float(version['digits'][0]) + float(version['digits'][1]) * 0.1 + float(version['digits'][2]) * 0.001
 					buf1 = buf.get('Product')
@@ -48,5 +49,18 @@ def get_version(bigip, basePath):
 
 	print "Version: %s %s" % ( version['product'], version['string'] )
         return version
+
+
+def get_path_from_json(jdata):
+	
+        selfLink = jdata.get('selfLink')
+	if selfLink != None:
+        	pos = selfLink.find('//');
+        	start = selfLink.find('/', pos + 2)
+        	end = selfLink.find('?')
+		return selfLink[start:end]
+	else:
+		return ""
+
 
 
