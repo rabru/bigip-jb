@@ -18,6 +18,19 @@
 
 import json
 
+
+def add_CommonToName(name):
+        if name.find('/') < 0:
+                name = "/Common/" + name
+        #print "Name + Common: %s" % name
+        return name
+
+def nameToPath(name):
+        s1='/'
+        s2='~'
+        list = name.split(s1)
+        return s2.join(list)
+
 def get_version(bigip, basePath):
 	version = { 'digit': [0, 0, 0], 'string': '', 'number': 0.0, 'product': ''}
         response = bigip.get(basePath + '/mgmt/tm/sys/version')
@@ -47,11 +60,11 @@ def get_version(bigip, basePath):
                                                         version['product'] = buf1
 		
 
-	print "Version: %s %s" % ( version['product'], version['string'] )
+	print "Target system: %s v%s" % ( version['product'], version['string'] )
         return version
 
 
-def get_path_from_json(jdata):
+def get_pathFromJson(jdata):
 	
         selfLink = jdata.get('selfLink')
 	if selfLink != None:

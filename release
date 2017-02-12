@@ -1,6 +1,14 @@
-## bigip-jb v0.2.2
+## bigip-jb v0.2.3
 ###################################
 ## Release Notes
+
+v0.2.3:
+ - sendjb.py: Change MAX_PATCH_PROPERTIES from 1 to 2. Now it is possible to create PATCH requests with one or two properties.
+ - sendjb.py: Optimize console output
+ - restStructure.py: Add expected properties in the REFERENCE_TYPE_LIST_*
+ - getjb.py: Skip defaul profiles. Implemented over expected properties "defaultsFrom"
+ - getjb.py: Create jb-header only for objects with references
+
 
 v0.2.2:
  - Move restStructure.py and shared.py to root path

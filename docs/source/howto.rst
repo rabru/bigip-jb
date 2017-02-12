@@ -5,7 +5,7 @@ How to use
 Create a json blob file manually
 --------------------------------
 
-To generate your own json blob file, you should start from an already configured element on a BIG-IP and read it out over REST to past the result on the new created empty file. It is important to understand, that you only can use single elements as a result of the REST call. There are no lists allowed.
+To generate your own json blob file, you should start from an already configured object on a BIG-IP and read it out over REST to past the result on the new created empty file. It is important to understand, that you only can use single onjects as a result of the REST call. There are no lists allowed.
 
 How to get REST content
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -36,7 +36,7 @@ If you have some lists, you can also copy the JSON code towards the clipboard vi
 Add the content to the json blob file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-After you have been able to get the JSON configuration of the target element,
+After you have been able to get the JSON configuration of the target objectt,
 you can copy past the JSON code into the json blob (jb) file.
 
 If you would like to collect several objects in the same jb file, you simple can past them in but they need to be separated by an empty line. I choose an empty line as separates, since it is easy to parse and also it improves the readability of the jb file. As a result of this, it is not allowed to put any empty lines within the JSON object, even if it would be allowed by JSON.
@@ -95,8 +95,8 @@ Next the object can be added to the jb file, as well separated by an empty line.
 The above created jb files can be directly used to get send with sendjb.py towards the target device. In the next chapter we will talk about the jb-header which can give you further options.
 
 
-Usage of the jb-header 
-----------------------
+The jb-header 
+-------------
 
 The additional jb-header will give you further capabilities for the deployment. The basic header looks like this and should be positioned on the top of the jb file as well followed by an empty line. An empty jb-header would look like this::
 
@@ -171,10 +171,15 @@ For example, you created yourself an jb file to deploy a vlan together with an s
 	}
 
 
-Transactions
-~~~~~~~~~~~~
+Transaction
+~~~~~~~~~~~
 
-Just imagen you have a list of objects like above, but much longer and on one of them an error happen. Then you have the situation, that some of the objects are deployed and some not. This could cause some cleanup work. In this situations it makes sense to get the deployment only done, if everything will go through well. For this need, F5 introduced the transaction, which can collect a set of objects which need to be deployed, and will finalize it only, if the validation went successfully through. To enable this feature you can add the transaction property in the jb-header and set it to ``true``::
+Just imagen you have a list of objects like above, but much longer and on one of them an error happen.
+Then you have the situation, that some of the objects are deployed and some not. This could cause some cleanup work.
+In this situations it makes sense to get the deployment only done, if everything will go through well.
+For this need, F5 introduced transactions, which can collect a set of objects which need to be deployed,
+and will finalize it only, if the validation went successfully through.
+To enable this feature you can add the transaction property in the jb-header and set it to ``true``::
 
 	{
 	    "kind": "jb-header",
@@ -232,7 +237,7 @@ If you also would like to create the partition within this jb file, or you would
 Application
 ~~~~~~~~~~~
 
-I personally like to collect al belonging elements of one application together. A good way to do this is to create an iApp and create all related objects within this subfolder. This makes it easier to know, which objects are related to which application and also in case you need to remove the application from the system, it can be done by one click and all related objects are removed. The needed jb-header could look like this::
+I personally like to collect all belonging elements of one application together. A good way to do this is to create an iApp and create all related objects within this subfolder. This makes it easier to know, which objects are related to which application and also in case you need to remove the application from the system, it can be done by one click and all related objects are removed. The needed jb-header could look like this::
 
 	{
 	    "kind": "jb-header",
@@ -241,4 +246,29 @@ I personally like to collect al belonging elements of one application together. 
 
 Like at partitions, the reference path in virtuals and pools to objects created below the same jb-header, will be adapted. Also it is possible to use the application option together with partition. But since the iApp will be created in the background, the application option can't be used together with the transaction option. I also do not see any need for it. In case of an error, simply remove the iApp and start from scratch. 
 
+
+Create a json blob file automatically
+--------------------------------------------
+
+With the python script ``getjb.py`` you can get json objects from a BIG-IP. Here you can see how to use it::
+
+	$ python getjb.py <username>@<bigip.mgmt.ip> <target jb file> <object path>
+ 
+First you will get a prompt for the password of the given user. This has the advantage, that there will be no trace in the history of the command line and also it is not necessary to store the password in the script itself.
+
+Here is an example for an request you could create::
+
+	$ python getjb.py admin@bigip.mgmt.ip demo.jb /mgmt/tm/net/self/ext_self_128
+	Pasword for admin@bigip.mgmt.ip:
+	Collecting Objects:
+	/mgmt/tm/net/self/ext_self_128
+
+This will simply store the json content of the selected selfip in the demo.jb file.
+This is something you probably could do more comfortable over postman or over the toc of the BIG-IP. But the main advantage you will recognize, when you try to get one of the following objects, since it will also collect the related objects at the same time:
+
+ - pool:	/mgmt/tm/ltm/pool/pool_name
+ - virtual:	/mgmt/tm/ltm/virtual/virtual_name
+ - virtual-address:	/mgmt/tm/ltm/virtual-address/ip-address
+
+This will be covered in details in the next sections.
 
