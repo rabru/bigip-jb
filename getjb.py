@@ -409,7 +409,7 @@ bigip.headers.update({'Content-Type' : 'application/json'})
 f = open ( filename, 'w')
 
 objectList = []
-print "Collecting Objects:"
+print "Gathering Objects:"
 
 write_element(bigip, f, ePath, 0, None, objectList)
 

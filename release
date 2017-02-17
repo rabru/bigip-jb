@@ -1,6 +1,10 @@
-## bigip-jb v0.2.3
+## bigip-jb v0.2.4
 ###################################
 ## Release Notes
+
+v0.2.4:
+ - Create preprocessor.py
+ - sendjb.py: Integrate preprocessor
 
 v0.2.3:
  - sendjb.py: Change MAX_PATCH_PROPERTIES from 1 to 2. Now it is possible to create PATCH requests with one or two properties.
@@ -9,7 +13,6 @@ v0.2.3:
  - getjb.py: Skip defaul profiles. Implemented over expected properties "defaultsFrom"
  - getjb.py: Create jb-header only for objects with references
 
-
 v0.2.2:
  - Move restStructure.py and shared.py to root path
  - remove lib directory
@@ -17,7 +20,6 @@ v0.2.2:
  - sendjb.py: Change way of import of restStructure and shared
  - getjb.py: Add objectList to keep track of the imported objects
  - getjb.py: Skip all objects, which are already imported
-
 
 v0.2.1:
  - Add lib/shared.py

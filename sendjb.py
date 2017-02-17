@@ -22,7 +22,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 import restStructure
 import shared
-
+import preprocessor
 
 # define program-wide variables
 MAX_FILE_SIZE = 100000
@@ -103,9 +103,9 @@ def remove_elements(data):
 		del data['selfLink']
 	if data.get('generation'):
 		del data['generation']
-        if data.get('state'):
+        if data.get('state') and data.get('status').find("user-") != 0:
                 del data['state']
-        if data.get('session'):
+        if data.get('session') and data.get('session').find("user-") != 0:
                 del data['session']
         if data.get('appService'):
                 del data['appService']
@@ -492,12 +492,19 @@ transID = -1
 iApp = ""
 
 
-items = sts.split('\n\n')
+lineList = sts.split('\n')
+
+Result = [{}, ""]
+preprocessor.preprocessor(lineList, False, False, "", Result)
+
+items = Result[1].split('\n\n')
 
 elements = create_element_list()
 
 parameters = {}
 for item in items:
+	#print "Item:"
+	#print item
 	if len(item) < 10:
 		continue
 	jdata = {}

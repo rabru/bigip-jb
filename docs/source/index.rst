@@ -7,5 +7,5 @@ bigip-jb
    :caption: Contents:
 
    introduction.rst
-   howto.rst
+   instruction.rst
 

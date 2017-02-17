@@ -1,5 +1,5 @@
-How to use
-==========
+Instruction
+===========
 
 
 Create a json blob file manually
@@ -45,8 +45,8 @@ As an example we will add next the ntp setup of the BIG-IP. We simply take the c
 
 	.. image:: images/jb_toc_ntp.png
 
-How to change just one property
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+How to change just some properties
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 So far we take one object and completely overwrite the configuration of the target system with it.
 But sometimes we would like to change just one property of the object. Just imagen, you would like
@@ -78,8 +78,8 @@ to set the hostname of the BIG-IP, this can be done in the ``/mgmt/tm/sys/global
 	}
 
 As you can see we have several properties in this configuration we not want to touch.
-In this case remove all the properties from the list except the selfLink and the one
-property you would like to change. Don't forget to remove the finishing comma at the last line!
+In this case remove all the properties from the list except the selfLink and the one ore two
+properties you would like to change. Don't forget to remove the finishing comma at the last line!
 
 ::
 
@@ -88,11 +88,11 @@ property you would like to change. Don't forget to remove the finishing comma at
           "hostname": "bigip04.local"
         }
 
-The selfLink is important to get the location of the target object and if there is only one additional property in the object, the script will automatically change only this one property.
+The selfLink is important to get the location of the target object and if there is only one or two additional properties in the object, the script will automatically change only this additional properties.
 
 Next the object can be added to the jb file, as well separated by an empty line.
 
-The above created jb files can be directly used to get send with sendjb.py towards the target device. In the next chapter we will talk about the jb-header which can give you further options.
+The above created jb file can be directly used to send it with sendjb.py towards the target device. In the next chapter we will talk about the jb-header which can give you further options.
 
 
 The jb-header 
@@ -234,6 +234,8 @@ If you also would like to create the partition within this jb file, or you would
 	
 	# Some more objects below . . .
 
+Be aware, that all objects without the 'fullPath' property will ignore this Partition settings. The script assumes in this case, that the object will be a global setting and not something you can move in the partition. This also effects the case, that you put only up to two properties in the object beside the 'selfLink' to adapt only this properties at the target. 
+
 Application
 ~~~~~~~~~~~
 
@@ -246,6 +248,116 @@ I personally like to collect all belonging elements of one application together.
 
 Like at partitions, the reference path in virtuals and pools to objects created below the same jb-header, will be adapted. Also it is possible to use the application option together with partition. But since the iApp will be created in the background, the application option can't be used together with the transaction option. I also do not see any need for it. In case of an error, simply remove the iApp and start from scratch. 
 
+As described at the Partition section, also here we will ignore the Application setting, if the 'fullPath' property is missing in the object.
+
+Preprocessor
+------------
+
+The preprocessor will parse through the jb file, searching for some preprocessor commands and execute them, before any json parser will go through it. This gives you the ability to manipulate the file based on some simple ruleset before it get executed.
+
+If '#' is the first character in a line, the preprocessor will recognize this as a preprocessor command. At the next sections I will introduce all different available commands of the preprocessor.
+
+Comment - '#'
+~~~~~~~~~~~~~
+
+A line will be recognized as a comment line, if it starts with '##' or '# '. Also a line of the length of one with just the '#' will be accepted as a comment line.
+
+The preprocessor will simply remove this comment lines form the jb file.
+
+Parameters on preprocessor level - '#define'
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With '#define' it is possible to create parameters, which are necessary for some other preprocessor commands. It can also be used as a parameter inside of the jb file. If the preprocessor finds after the definition of the parameter the <names> of the parameter in the code, it will replace it with the <value> of it::
+
+	#define <name> <value> 
+
+Spaces inside of the value will be used as a separator to create a list of elements. Therefore it is not possible to create any value entry with a space inside. Even if you use some quotations::
+
+	Definitions:
+	#define NO_LIST hello
+	#define NODE_LIST 10.10.10.1 10.10.10.2 10.10.10.3
+	#define LIST_WITH_QUOTES1 "This is a List!"
+	#define LIST_WITH_QUOTES2 "This" "is" "a" ""List"!"
+	
+	Result:
+	NO_LIST = ['hello']
+	NODE_LIST = ['10.10.10.1', '10.10.10.2', '10.10.10.3']
+	LIST_WITH_QUOTES1 = ['"This', 'is', 'a', 'List!"']
+	LIST_WITH_QUOTES2 = ['"This"', '"is"', '"a"', '""List"!"']
+	
+As you can see, also one element will be internally managed as a list. Not that this should matter to you.
+
+If the preprocessor spots a <name>, it will replace it with the first <value> in the related list. Except it will be used in a loop, then it follows the index of the loop.
+
+Conditions - '#if, #elif, #else, #endif'
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+I not want to explain here how conditions work. I hope this is well known. After the '#if' and '#elif' is an expression expected. This can be anything which could be handled by python. If the expression is 'True' then the lines behind it will be kept in the final jb file. If it is 'False', then the lines will be skipped until the next, to this #if schemata related, preprocessor command. Nested conditions are possible. 
+
+If you would like to compare a string with some '#define' definitions, make sure that the string is covered by quotes, otherwise python will recognize it as a variable which is not defined.::
+
+	Right:
+		#define NODE_MODE "enabled"
+		#if NODE_MODE == "enabled"
+		  <content>
+		#endif
+	Wrong:
+		#define NODE_MODE enabled
+		#if NODE_MODE == enabled
+		  <content>
+		#endif
+	
+Here is a list of possible comparison operator::
+
+	{ ==, !=, <, >, <=, >= }
+
+Also the following boolean operator available::
+ 
+	{ and, or, not }
+
+For more details I recommend to have a look at a python documentation.
+
+Loops - '#loop, #endloop'
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With loops it is possible to create the same json objects several times with some adaptions in it. The end of the loop is marked with '#loopend'. It is possible to cascade loops.
+It is necessary to create first via '#define' a list of elements which will be the parameter of '#loop'. Over this list the loop will repeat the configuration. For the adaptation in the json object you place the <name> of the list inside the loop. At the end it works like a foreach implementation. Here is an example::
+
+	#define NODE_LIST 10.10.10.1 10.10.10.2 10.10.10.3
+	#loop NODE_LIST
+	{
+		"exampleName": "example value",
+		"address": "NODE_LIST"
+	}
+	
+	#loopend
+
+Make sure that you leave one empty line in front of the '#loopend' otherwise you will miss the empty line to separate the json objects from each other. The result of the example above would be::
+	
+	{
+	        "exampleName": "example value",
+	        "address": "10.10.10.1"
+	}
+	
+	{
+	        "exampleName": "example value",
+	        "address": "10.10.10.2"
+	}
+	
+	{
+	        "exampleName": "example value",
+	        "address": "10.10.10.3"
+	}
+
+You can also use other list definition inside of the loop and it will follow the index of the loop list. If the list is shorter than the loop list, you will get a preprocessor error. If the list has just one element, only this one will be used.
+
+Preprocessor debugging
+~~~~~~~~~~~~~~~~~~~~~~
+
+In the case you got some issues with the preprocessor or simply would like to see the result of the preprocessor bevor sending it out, you can use the preprocessor.py script to get a look at the result::
+
+	$ python preprocessor.py <file.jb>
+
 
 Create a json blob file automatically
 --------------------------------------------
@@ -254,7 +366,8 @@ With the python script ``getjb.py`` you can get json objects from a BIG-IP. Here
 
 	$ python getjb.py <username>@<bigip.mgmt.ip> <target jb file> <object path>
  
-First you will get a prompt for the password of the given user. This has the advantage, that there will be no trace in the history of the command line and also it is not necessary to store the password in the script itself.
+First you will get a prompt for the password of the given user. This has the advantage,
+that there will be no trace in the history of the command line regarding the password and also it is not necessary to store the password in the script itself.
 
 Here is an example for an request you could create::
 
@@ -264,7 +377,7 @@ Here is an example for an request you could create::
 	/mgmt/tm/net/self/ext_self_128
 
 This will simply store the json content of the selected selfip in the demo.jb file.
-This is something you probably could do more comfortable over postman or over the toc of the BIG-IP. But the main advantage you will recognize, when you try to get one of the following objects, since it will also collect the related objects at the same time:
+This is something you probably could do more comfortable over postman or the toc of the BIG-IP. But the main advantage you will recognize, when you try to get one of the following objects, since it will also collect the related objects at the same time:
 
  - pool:	/mgmt/tm/ltm/pool/pool_name
  - virtual:	/mgmt/tm/ltm/virtual/virtual_name

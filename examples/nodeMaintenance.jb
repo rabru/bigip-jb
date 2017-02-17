@@ -1,0 +1,26 @@
+########################################
+# Options: "enable" "disable" "offine" #
+# 
+#define MODE "enable"
+#define <<NODE_NAME>> 10.10.10.201
+##
+{
+    "kind": "jb-header",
+    "application": "",
+    "partition": ""
+}
+
+{
+  "selfLink": "https://localhost/mgmt/tm/ltm/node/<<NODE_NAME>>?ver=11.5.1",
+#if MODE == "enable"
+  "session": "user-enabled",
+  "state": "user-up"
+#elif MODE == "disable"
+  "session": "user-disabled",
+  "state": "user-up"
+#elif MODE == "offline"
+  "session": "user-disabled",
+  "state": "user-down"
+#endif
+}
+
