@@ -103,7 +103,7 @@ def remove_elements(data):
 		del data['selfLink']
 	if data.get('generation'):
 		del data['generation']
-        if data.get('state') and data.get('status').find("user-") != 0:
+        if data.get('state') and data.get('state').find("user-") != 0:
                 del data['state']
         if data.get('session') and data.get('session').find("user-") != 0:
                 del data['session']
@@ -464,7 +464,6 @@ if ex:
 
 username = sourceList[0]
 bigipAddr = sourceList[1]
-BIGIP_URL_BASE = 'https://%s' % bigipAddr
 
 # Get Password
 passwd = getpass.getpass("Pasword for " + source + ":")
@@ -475,8 +474,9 @@ bigip.auth = (username, passwd)
 bigip.verify = False
 bigip.headers.update({'Content-Type' : 'application/json'})
 
-
-BIGIP_VERSION = shared.get_version(bigip, BIGIP_URL_BASE) 
+lastHost = ""
+BIGIP_URL_BASE = ""
+BIGIP_VERSION = "" 
 
 # Open json blob file
 f = open ( filename, 'r')
@@ -495,7 +495,7 @@ iApp = ""
 lineList = sts.split('\n')
 
 Result = [{}, ""]
-preprocessor.preprocessor(lineList, False, False, "", Result)
+preprocessor.preprocessor(lineList, False, False, "", Result, 0, "")
 
 items = Result[1].split('\n\n')
 
@@ -517,8 +517,11 @@ for item in items:
 		print "Json parser Error"
 		print item
 		#continue
+	##
+	## jb-Header 
+	##
 	if jdata.get('kind') == 'jb-header':
-		print "Found jb-header!"
+		print "----- jb-header -----"
 		# If transaction is open, we should finalize it now before we start a new json blob
 		if transID >= 0:
 			commit_transaction(bigip, transID)
@@ -534,6 +537,15 @@ for item in items:
 		else:
 			partition = ""
 
+                # Update jb-Header Host
+                host = jdata.get('host')
+                if host == None:
+                        host = bigipAddr
+                if host != lastHost:
+                        BIGIP_URL_BASE = 'https://%s' % host
+                        BIGIP_VERSION = shared.get_version(bigip, BIGIP_URL_BASE)
+                        lastHost = host
+
 		if jdata.get('application') != None and jdata.get('application') != "":
 			iApp = jdata['application'].encode('utf8', 'replace')
 			create_iApp(bigip, iApp, partition)
@@ -541,9 +553,17 @@ for item in items:
                 if jdata.get('transaction') != None and jdata.get('transaction') == "true":
 			transID = create_transaction(bigip)
 
+		# Update jb-Header Parameter list
 		parameters = jdata.get('parameters')
 
+	##
+	## bigip json blob
+	##
 	else:
+		# First jason blob needs to check Version
+		if BIGIP_URL_BASE == "":
+			BIGIP_URL_BASE = 'https://%s' % bigipAddr
+			BIGIP_VERSION = shared.get_version(bigip, BIGIP_URL_BASE)
 		path = get_path(jdata, iApp, partition)
        		#print "path: ", path
         	remove_elements(jdata)

@@ -66,7 +66,7 @@ def preDEBUGoutput( element, response ):
 	else:
                 print "%s%s -> %s" % (' '*iter, element, response)
  
-def preprocessor(lineList, skip, skipAll, mode, result):
+def preprocessor(lineList, skip, skipAll, mode, result, loopPointer, loopName):
 	global preITERATIONS
 
 	#print "PREPROCESSOR started: mode = %s" % mode
@@ -74,8 +74,8 @@ def preprocessor(lineList, skip, skipAll, mode, result):
 
 	
 	# Loop cleanup
-	loopName = ""
-	loopPointer = 0
+	#loopName = ""
+	#loopPointer = 0
 	if mode.find("#loop ") == 0:
 		loopName = parseLoop(mode, propDict)
 		loopList = propDict[loopName]
@@ -92,6 +92,7 @@ def preprocessor(lineList, skip, skipAll, mode, result):
 	counter = 0 
 	while counter < len(lineList):
 		line = lineList[counter]
+		#print "Line1: " + line
 		counter = counter + 1
 		#print "counter %s" % counter
 		# Replace #define parameter - #loop will be an exception since we need the parameter name there
@@ -99,14 +100,15 @@ def preprocessor(lineList, skip, skipAll, mode, result):
 			for prop in propDict:
 				#if prop != loopName: # Skip loopName
 				propLen = len(propDict[prop])
-				#print "proplen: %s" % propLen
+				#print "prop: %s     len: %s     loopPointer: %s" % (prop, propLen, loopPointer)
 				if propLen == 1:
 					j = 0
+					line = line.replace(prop, propDict[prop][j])
 				elif propLen > loopPointer:
-					j = loopPointer 
-				else:
-					preprocessorExit("List of \'" + prop + "\' is to short!")
-				line = line.replace(prop, propDict[prop][j])
+					j = loopPointer
+					line = line.replace(prop, propDict[prop][j])
+				elif line.find(prop) >= 0: # Found in line, but list to short for loop 
+						preprocessorExit("List of \'" + prop + "\' is to short!")
 		
 		# Replace Loop Parameter:
 		#if mode == "#loop":
@@ -117,6 +119,7 @@ def preprocessor(lineList, skip, skipAll, mode, result):
 		if len(line) >= 1 and line[0] == '#':
 			# Make sure, it is not a comment line
 			if len(line) > 1 and line[1] != '#' and line[1] != ' ':
+				#print "Line2: " + line
 				if line.find("#define ") == 0:
 					if not skip:
 						parseDefine(line, propDict)
@@ -129,7 +132,7 @@ def preprocessor(lineList, skip, skipAll, mode, result):
 						else: 
 							preDEBUGoutput( line, res )
 					preITERATIONS = preITERATIONS + 1
-					counter = counter + preprocessor(lineList[counter:], skip or not res, skip, "#if", result) + 1
+					counter = counter + preprocessor(lineList[counter:], skip or not res, skip, "#if", result, loopPointer, loopName) + 1
 					preITERATIONS = preITERATIONS - 1
                         	elif line.find("#endif") == 0:
 					if preDEBUG:
@@ -142,22 +145,22 @@ def preprocessor(lineList, skip, skipAll, mode, result):
 						return counter - 1 
 					else:
 						preprocessorExit("Found unexpected #endif")
-                                elif line.find("#elif") == 0 and not skipAll:
-
+                                elif line.find("#elif") == 0:
                                         if mode == '#if':
-						if not skip: # All following elements are skipped
+						#print "skip: %s, skipAll: %s" % (skip, skipAll)
+						if not skip or skipAll: # All following elements are skipped (if was True)
 							skipAll = True
 							skip = True
 							if preDEBUG:
-								preDEBUGoutput( "#elif", "skipped" )
-						elif not skipAll and skip:
+								preDEBUGoutput( line, "skipped" )
+						elif skip:
                                                 	skip = not parseIf(line)
                                                         if preDEBUG:
-                                                                preDEBUGoutput( "#elif", (not skip))
+                                                                preDEBUGoutput( line , (not skip))
 						else:
 							skip = True
 							if preDEBUG:
-                                                                preDEBUGoutput( "#elif", "skipped" )
+                                                                preDEBUGoutput( line, "skipped" )
                                         else:
                                                 preprocessorExit("Found unexpected #elif in mode '%s'" % mode)
 				elif line.find("#else") == 0:
@@ -174,7 +177,7 @@ def preprocessor(lineList, skip, skipAll, mode, result):
 							preDEBUGoutput( "#else", "" )
 				elif line.find("#loop ") == 0:
 					preITERATIONS = preITERATIONS + 1
-					counter = counter + preprocessor(lineList[counter:], skip, skip, line, result) + 1
+					counter = counter + preprocessor(lineList[counter:], skip, skip, line, result, 0, "") + 1
 					preITERATIONS = preITERATIONS - 1
 				elif line.find("#loopend") == 0:
 					if mode != "#loop":
@@ -184,7 +187,7 @@ def preprocessor(lineList, skip, skipAll, mode, result):
 							if skip:
 								preDEBUGoutput( "#loopend", "skipped" )
 							else:
-								preDEBUGoutput( "#elif", "" )
+								preDEBUGoutput( "#loopend", "end" )
 						propDict[loopName] = loopList
 						return counter -1
 					else:
@@ -192,6 +195,8 @@ def preprocessor(lineList, skip, skipAll, mode, result):
 						propDict[loopName] = loopList[loopPointer:loopPointer + 1]
 						#print "Pointer: %s listlen: %s" % (loopPointer, len(loopList))
 						counter = 0 # Start from the beginning of the loop
+						if preDEBUG:
+							preDEBUGoutput( "#loopend", "next" )
 						
 						
 
@@ -226,8 +231,8 @@ if sys.argv[0].endswith('preprocessor.py'):
 
 	lineList = str.split('\n')
 
-	Result = [{}, ""]
-	preprocessor(lineList, False, False, "", Result)
+	Result = [{}, ""] # Parameters, Result, loopPointer
+	preprocessor(lineList, False, False, "", Result, 0, "")
 	print ""
 	print "Result:"
 	print Result[1]

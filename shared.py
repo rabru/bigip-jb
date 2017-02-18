@@ -60,7 +60,7 @@ def get_version(bigip, basePath):
                                                         version['product'] = buf1
 		
 
-	print "Target system: %s v%s" % ( version['product'], version['string'] )
+	print "Host %s: %s v%s" % ( basePath.split('//')[1], version['product'], version['string'] )
         return version
 
 

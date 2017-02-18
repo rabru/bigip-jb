@@ -28,7 +28,7 @@
 
 {
   "selfLink": "https://localhost/mgmt/tm/sys/global-settings?ver=12.1.1",
-  "hostname": "bigip01.local"
+  "hostname": "bigip02.local"
 }
 
 {

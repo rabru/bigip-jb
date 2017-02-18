@@ -234,7 +234,10 @@ If you also would like to create the partition within this jb file, or you would
 	
 	# Some more objects below . . .
 
-Be aware, that all objects without the 'fullPath' property will ignore this Partition settings. The script assumes in this case, that the object will be a global setting and not something you can move in the partition. This also effects the case, that you put only up to two properties in the object beside the 'selfLink' to adapt only this properties at the target. 
+Be aware, that all objects without the 'fullPath' property will ignore this Partition settings.
+The script assumes in this case, that the object will be a global setting and not something you
+can move in a partition. This also effects the case, that you put only up to two properties in
+the object beside the 'selfLink' to change only this properties at the target. 
 
 Application
 ~~~~~~~~~~~
@@ -249,6 +252,15 @@ I personally like to collect all belonging elements of one application together.
 Like at partitions, the reference path in virtuals and pools to objects created below the same jb-header, will be adapted. Also it is possible to use the application option together with partition. But since the iApp will be created in the background, the application option can't be used together with the transaction option. I also do not see any need for it. In case of an error, simply remove the iApp and start from scratch. 
 
 As described at the Partition section, also here we will ignore the Application setting, if the 'fullPath' property is missing in the object.
+
+Host
+~~~~
+
+With the host property, you can preset the target BIG-IP. This will overwrite the given host of
+the sendjb.py command. Over this you can create a jb file designed for a specific target. But
+mainly I introduced the host property, to be able to send within one jb file the same configuration
+to several BIG-IP's. Please have a look at this `example <../../example/sendConfigurationHostList-Blank.jb>`_
+for more details.
 
 Preprocessor
 ------------
@@ -384,4 +396,49 @@ This is something you probably could do more comfortable over postman or the toc
  - virtual-address:	/mgmt/tm/ltm/virtual-address/ip-address
 
 This will be covered in details in the next sections.
+
+Pool
+~~~~
+
+Beside the pool, the following sub-objects will be collected, if you request a pool instance of the BIG-IP:
+
+ - Monitors
+ - Pool Members
+
+Default monitors will not be included in the jb file, since I assume, they will be also available on the target system.
+
+Virtual
+~~~~~~~
+
+The virtual has far more sub-objects than a pool. Since there are no specific rules,
+how sub-objects are specified in the virtual, this need to be implemented in the script manually.
+Therefore, I just managed a subset of all objects which are listed here:
+
+ - Default Pool with its sub-objects
+ - iRules
+ - Profiles
+ - Policies
+ - Persistence with fallback persistence
+ - SnatPool
+ - RateClass
+
+If some objects of the virtual are missing, feel free to add them manually to the jb file.
+
+All default objects will be skipped as well. 
+
+Virtual-Address
+~~~~~~~~~~~~~~~
+
+In case you would like to migrate a virtual server to a different BIG-IP, you need to do this
+IP address wise. With this option, you can collect all virtual server using this specific
+IP address to transfer them towards the new target. Since I assume, that the target BIG-IP is
+connected towards the same vlans, arp will be disabled on the virtual-address object in the jb file. Therefore
+you can deploy the resulting jb file towards the new target and check, if everything works fine
+on the new deployment, before you disable arp on the source BIG-IP and enable it
+afterwards on the target BIG-IP. Now the migration is finalized.
+
+In case you are using a snatPool, please make sure you change the IP addresses of it in the jb file,
+to avoid IP address conflicts.
+
+In the case, some objects are used twice (like a pool from an http and https virtual), this objects are added to the jb file only once.
 

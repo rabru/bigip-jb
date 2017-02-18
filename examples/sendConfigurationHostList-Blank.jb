@@ -1,0 +1,25 @@
+# Send your configuration to several hosts          #
+#####################################################
+# To send the configuration to a specific partition,
+# set the partition in the jb-header accordingly.
+# With the application setting it is possible to
+# add the configuration to an iApp without template.
+# 
+#define <<HOST_LIST>> bigip.mgmt.ip 172.16.8.62
+#
+##
+#loop <<HOST_LIST>>
+{
+    "kind": "jb-header",
+    "partition": "",
+    "application": "",
+    "host": "<<HOST_LIST>>"
+}
+
+# Add your configuration between the following lines
+##################### start #########################
+
+
+###################### end ##########################
+
+#loopend
