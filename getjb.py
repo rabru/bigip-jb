@@ -20,7 +20,8 @@ import sys, getpass, string, requests, json
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-execfile("lib/reststructure.py")
+import restStructure
+import shared
 
 # define program-wide variables
 PARAM_DESTADDR = "<<DestinationAddr>>"
@@ -30,12 +31,6 @@ def clean_path(path):
 	list = path.split('localhost')
 	list = list[1].split('?')
 	return list[0]
-
-def name2path(name):
-	s1='/'
-	s2='~'
-	list = name.split(s1)
-	return s2.join(list)
 
 def get_reference_link(jitem, referenceTag):
         if jitem.get(referenceTag) != None:
@@ -112,25 +107,69 @@ def create_jb_header(jdata):
 		jdata['name'] = param
 	return jheader
 
+def append_json(str, j, objectList):
+
+        # Get the path for the global list
+        objectList.append(shared.get_pathFromJson(j))
+        print objectList[-1]
+
+        str = str + "\n\n"
+        str = str + json.dumps(j, sort_keys = False, indent = 4, separators=(',', ': '))
+        return str
+
+def exist_expectedProperties(jdata, ref):
+        if ref != None:
+		for obj in ref[4]:
+                	if jdata.get(obj) == None:
+                        	return False
+                	#else:
+                        #	print "obj: %s" % jdata.get(obj)
+        return True
+
 def write_json(file, j):
 	file.write(json.dumps(j, sort_keys = False, indent = 4, separators=(',', ': ')))
 
 def write_sep(file):
 	file.write("\n\n")
 
-def append_json(str, j):
-	str = str + "\n\n"	
-	str = str + json.dumps(j, sort_keys = False, indent = 4, separators=(',', ': '))
-	return str
+def write_object(file, j, ref):
+	if exist_expectedProperties(j, ref):
+		write_json(file, j)
+		write_sep(file)
 
-def write_element(bigip, file, path, iteration):
-
-	#print "=== %s. write_element Iteration! ===" % iteration
+def write_element(bigip, file, path, iteration, ref, objectList):
+	# bigip		- target for REST requests to get configuration from the system.
+	# file		- jb file to write the result in.
+	# path		- path of the object (like: /mgmt/tm/ltm/pool/poolName)
+	# iteration	- Iteration == 0 is the first request. All recursive requests will increase the iteration.
+	# ref		- This is the result of the REFERENCE_TYPE_LIST of this element. this has only
+	#		  a value, if it is a recursion. For iteration == 0 this is None.
+	# objectList	- List of all collected objects, to avoid collection objects multiply times.
 
 	# Address list need to be written first. Flag if this is done:
 	isWritten = False
+
+        # Check, if the object is alreeady in the list.
+	if path in objectList:
+		# Skip creation by settion isWritten as True
+		isWritten = True
+	else:
+		# Load the object from the BIG-IP
+	        element = get_element(bigip, path)
+        	if element == None:
+                	exit("Can't find %s!" % path)
+        	jelement = json.loads(element)
+		kind = jelement.get('kind')
+		# Check if the onject need to be stored
+		if kind != None and exist_expectedProperties(jelement, ref):
+        		objectList.append(path)
+        		print path
+		else:
+			# Skip creation by settion isWritten as True
+			isWritten = True
+
 	#exceptions:
-	for item in EXPAND_SUBCOLLECTION_LIST:
+	for item in restStructure.EXPAND_SUBCOLLECTION_LIST:
 		if path.find(item) == 0:
         		path = path + "?expandSubcollections=true"
 			#print "EXTENSION!!! %s" % path
@@ -139,26 +178,24 @@ def write_element(bigip, file, path, iteration):
 	element = get_element(bigip, path)
 	if element == None:
 		exit("Can't find %s!" % path)
-
 	jelement = json.loads(element)
 
-	#exceptions:
-        if iteration == 0:
+	#exceptions: Create jb-header only for objects with references 
+        if iteration == 0 and not isWritten and restStructure.REFERENCE_KIND_LIST.get(kind) != None:
 		jHeader = create_jb_header(jelement)
         	write_json(f, jHeader)
 		write_sep(f)
 
-	## empty sub:
+	## empty sub in case of sub Elements like pool members:
 	sub = ""
 
-        kind = jelement.get('kind')
-        if kind != None:
+        if not isWritten:
                 #print "Kind: %s" % kind
-                refList = REFERENCE_KIND_LIST.get(kind);
+                refList = restStructure.REFERENCE_KIND_LIST.get(kind);
 
                 # Replace jb-Header parameter in virtual server
 		# Check if it is a virtual and iteration is not 0.
-		if refList == REFERENCE_TYPE_LIST_VIRTUAL and iteration != 0:
+		if refList == restStructure.REFERENCE_TYPE_LIST_VIRTUAL and iteration != 0:
 			dest = jelement.get('destination')
 			if dest != None:
                 		s1 = '/'
@@ -173,7 +210,7 @@ def write_element(bigip, file, path, iteration):
                 if refList != None:
                         #############################work#######################
                         for item in refList:
-				print "Item: %s" % item
+				#print "Item: %s" % item
 				ref = refList.get(item)
                                 type = ref[0]
                                 if ref[1].find("direct") == 0:
@@ -191,36 +228,36 @@ def write_element(bigip, file, path, iteration):
 					if name != None:
                                                 #END - Check for sub elements
 						#print "name %s" % name
-						pname = name2path(name)
+						pname = shared.nameToPath(name)
 						pstart = ref[2].get(type)
 						if pstart != None:
 							path = concat_path(bigip, pstart, pname)
 							if path != None:
-								write_element(bigip, file, path, iteration + 1)
+								write_element(bigip, file, path, iteration + 1, ref, objectList)
 								write_sep(file)
 
                                 elif ref[1].find("items") == 0:
-                                        print "Item to get name: %s" % item
+                                        #print "Item to get name: %s" % item
                                         list = jelement.get(item)
 					if list != None and list.get('items') != None:
                         			for element in list['items']:
 							path = get_reference_link(element, "nameReference")
-							print "Path from link: %s" % path
+							#print "Path from link: %s" % path
 							if path == "": # Only on v12 and higher we have a nameReference available
 								name = element.get('name')
 								path = ref[2].get(type)
 								if name != None and path != None:
                                                                         path = concat_path(bigip, path, name)
-                                                                        print "PATH_concat = %s" % path
+                                                                        #print "PATH_concat = %s" % path
 									#path = get_subpath(bigip, path, name)
 									#print "PATH_sub = %s" % path
 									if path == None:
 										path = ""
-									print "SubPath: %s " % path
+									#print "SubPath: %s " % path
 								else:
 									path = ""
 							if path != "":
-								write_element(bigip, file, path, iteration + 1)
+								write_element(bigip, file, path, iteration + 1, ref, objectList)
 								write_sep(file)
 
                                 elif ref[1].find("list") == 0:
@@ -238,12 +275,12 @@ def write_element(bigip, file, path, iteration):
 
 							if name != None:
                                                 		#END - Check for sub elements
-                                                		path = name2path(name)
+                                                		path = shared.nameToPath(name)
 	                                                	pstart = ref[2].get(type)
         	                                        	if pstart != None:
 									path = concat_path(bigip, pstart, path)
 									if path != None:
-                                	                			write_element(bigip, file, path, iteration + 1)
+                                	                			write_element(bigip, file, path, iteration + 1, ref, objectList)
                                         	        			write_sep(file)
 
                                 elif ref[1] == "and":
@@ -257,12 +294,12 @@ def write_element(bigip, file, path, iteration):
                                                         if mon != "" and mon != "and":
                                                                 #print "Mon first : %s" % mon
 
-                                                		path = name2path(mon)
+                                                		path = shared.nameToPath(mon)
  	           						pstart = ref[2].get(type)
         	                                                if pstart != None:
                 	                                                path = concat_path(bigip, pstart, path)
                                                 			if path != None:
-										write_element(bigip, file, path, iteration + 1)
+										write_element(bigip, file, path, iteration + 1, ref, objectList)
                                                 				write_sep(file)
 
                                                                 
@@ -270,15 +307,14 @@ def write_element(bigip, file, path, iteration):
                                         #print "Item to get fPath: %s" % item
                                         name = jelement.get('fullPath')
                                         if name != None:
-                                                path = name2path(name)
+                                                path = shared.nameToPath(name)
                                                 path = ref[2].get(item) + '/' + path + '/' + type 
 						response = get_element(bigip, path)
 						if response != None:
 							jres = json.loads(response)
 							if jres.get('items') != None:
 								for item in jres.get('items'):
-									sub = append_json(sub, item)
-									#write_json(file, item)
+									sub = append_json(sub, item, objectList)
 
 				elif ref[1] == "address":
                                         #print "Item (address) to get fPath: %s" % item
@@ -292,8 +328,11 @@ def write_element(bigip, file, path, iteration):
 					isWritten = True
 					name = jelement.get('fullPath')
 					if name != None:
+						name = shared.add_CommonToName(name)
+						print "Name: %s" % name
 						searchPath = ref[2].get(ref[0])
 						if searchPath != None:
+							#print "SearchPath: %s" % searchPath
 							response = get_element(bigip, searchPath)
                                                 	if response != None:
 								jres = json.loads(response)
@@ -301,34 +340,38 @@ def write_element(bigip, file, path, iteration):
 								if vsList != None:
 									# Went through the list of virtuals:
 									for jvs in vsList:
-										destination = jvs.get('destination')
-										if jvs.get('destination') != None and jvs.get('destination').find(name) == 0:
-											#print "Found vs: %s" % jvs.get('destination')  
-											vsFullPath = jvs.get('fullPath')
-											if vsFullPath != None:
-												#print " FullPath: %s " % vsFullPath
-												vsName = name2path(vsFullPath)
-												# Replace Header parameter in virtual server
-												s1 = '/'
-												s2 = ':'
-												list1 = destination.split(s1)
-												list2 = list1[-1].split(s2)
-												list2[0] = PARAM_DESTADDR
-												list1[-1] = s2.join(list2)
-												jvs['destination'] = s1.join(list1)
-												# Write virtual server elements 
-												write_element(bigip, file, searchPath + "/" + vsName, iteration + 1)
-												write_sep(file)
+										dest = jvs.get('destination')
+										if dest != None:
+											#print "Destination: %s" % dest
+											if dest.split(':')[0] == name:
+												#print "Found vs: %s" % jvs.get('destination')  
+												vsFullPath = jvs.get('fullPath')
+												if vsFullPath != None:
+													#print " FullPath: %s " % vsFullPath
+													vsName = shared.nameToPath(vsFullPath)
+													# Replace Header parameter in virtual server
+													s1 = '/'
+													s2 = ':'
+													list1 = dest.split(s1)
+													list2 = list1[-1].split(s2)
+													list2[0] = PARAM_DESTADDR
+													list1[-1] = s2.join(list2)
+													jvs['destination'] = s1.join(list1)
+													# Write virtual server elements 
+													write_element(bigip, file, searchPath + "/" + vsName, iteration + 1, ref, objectList)
+													write_sep(file)
 
 
 	if not isWritten:
 		write_json(file, jelement)
-	#write_sep(file)
-	### add sub elements behind the main element, since it depends on it:
+	### add sub objects behind the main object, since it depends on it:
 	if sub != "":
-		#write_sep(file)
 		file.write(sub)
 	
+
+##############
+#### MAIN ####
+##############
 
 # Parse Parameter
 ex = False
@@ -345,7 +388,7 @@ else:
 if ex:
         print "Usage: %s <username>@f5-mgmt-ip <jb_filename> <path> " % (sys.argv[0])
         print "\t  <path> Points to the configuration on the BIG-IP"
-        print "\t\t Example: /mgmt/ltm/pool/poolname"
+        print "\t\t Example: /mgmt/tm/ltm/pool/poolname"
         sys.exit()
 
 username = sourceList[0]
@@ -365,7 +408,10 @@ bigip.headers.update({'Content-Type' : 'application/json'})
 # Open json blob file
 f = open ( filename, 'w')
 
-write_element(bigip, f, ePath, 0)
+objectList = []
+print "Gathering Objects:"
+
+write_element(bigip, f, ePath, 0, None, objectList)
 
 f.close()
 

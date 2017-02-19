@@ -28,11 +28,11 @@
 
 {
   "selfLink": "https://localhost/mgmt/tm/sys/global-settings?ver=12.1.1",
-  "hostname": "bigip04.local"
+  "hostname": "bigip02.local"
 }
 
 {
   "selfLink": "https://localhost/mgmt/tm/sys/db/ui.system.preferences.recordsperscreen?ver=12.0.0",
-  "value": "55"
+  "value": "100"
 }
 

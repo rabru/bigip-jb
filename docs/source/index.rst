@@ -1,36 +1,11 @@
+========
 bigip-jb
 ========
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
-   howto.rst
+   introduction.rst
+   instruction.rst
 
-Introduction:
-=============
-
-This script can be helpful in the daily manually administrative jobs on a BIG-IP and is therefore targeted to any BIG-IP administrator and consultant. Even if it is based on REST, it is not ment ot be used for any automation or orchestration integration, since it is purely targeted for the manual administration.
-
-The main idea behind this project is, to create an easy way to reproduce the same configuration in a simple way by storing it in a json blob. Also it should be easy to create a json blob, without learning a new json scheme. Therefor I simply use the json output of the BIG-IP as basic for the json blob, so that it can be created simply by copy and paste.
-
-The project based mainly on two python scripts:
-
-``getjb.py``
-  This is helping you to create a json blob with the configuration you would like to implement.
-  But still it is possible to create your own json blob manually simply by copy paste.
-
-``sendjb.py``
-   This will send the finalized configuration from a json blob (.jb) file towards the targeted BIG-IP.
-
-To your attention
------------------
-
-The usage of this scripts is on your own risk and it is up to you to make sure that the usage is not causing potential outages of your environment. Especially in a productive environment use this scripts with care and validate the function always in a test environment first.
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

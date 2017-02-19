@@ -16,6 +16,21 @@
 ####################################################################
 ### Functions for getjb.py and sendjb.py
 
+import json
+
+
+def add_CommonToName(name):
+        if name.find('/') < 0:
+                name = "/Common/" + name
+        #print "Name + Common: %s" % name
+        return name
+
+def nameToPath(name):
+        s1='/'
+        s2='~'
+        list = name.split(s1)
+        return s2.join(list)
+
 def get_version(bigip, basePath):
 	version = { 'digit': [0, 0, 0], 'string': '', 'number': 0.0, 'product': ''}
         response = bigip.get(basePath + '/mgmt/tm/sys/version')
@@ -36,7 +51,6 @@ def get_version(bigip, basePath):
 						if buf1 != None:
 							version['digits'] = buf1.split('.')
 							if len(version['digits']) == 3:
-								print "buf1: %s" % buf1
 								version['string'] = buf1
 								version['number'] = float(version['digits'][0]) + float(version['digits'][1]) * 0.1 + float(version['digits'][2]) * 0.001
 					buf1 = buf.get('Product')
@@ -46,7 +60,20 @@ def get_version(bigip, basePath):
                                                         version['product'] = buf1
 		
 
-	print "Version: %s %s" % ( version['product'], version['string'] )
+	print "Host %s: %s v%s" % ( basePath.split('//')[1], version['product'], version['string'] )
         return version
+
+
+def get_pathFromJson(jdata):
+	
+        selfLink = jdata.get('selfLink')
+	if selfLink != None:
+        	pos = selfLink.find('//');
+        	start = selfLink.find('/', pos + 2)
+        	end = selfLink.find('?')
+		return selfLink[start:end]
+	else:
+		return ""
+
 
 
