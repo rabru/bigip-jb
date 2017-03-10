@@ -2,6 +2,18 @@
 ###################################
 ## Release Notes
 
+
+v0.2.6:
+ - preprocessor.py: Change #loopend to #endloop to adapt to the naming of #endif
+ - preprocessor.py: #include to import jb files
+ - sendjb.py: Set the GLOBAL_PATH variable to get the related path of the file to be able to address the include files.  
+ - sendjb.py: Include Error message: Already exists.
+ - sendjb.py: Save config changes. Introduce NEED_SAVE to track.
+ - restStructure.py: Add /mgmt/tm/sys/application/template to EXPAND_SUBCOLLECTION_LIST 
+ - sendjb.py: Increase MAX_FILE_SIZE to 500000 byte
+ - shared.py: Include Version format of v11.5.x
+ - preprocessor.py: Include the #lastloop function
+
 v0.2.5:
  - preprocessor.py: Transfer loop index to iteration (fix issue with nested #if)
  - sendjb.py: Add host property to jb-header to be able to spread configuration towards several host in on go

@@ -100,7 +100,8 @@ KIND_TO_OBJECT = {
 ### List of all elements which need to be collected via expandSubcollections
 
 EXPAND_SUBCOLLECTION_LIST = { 	'/mgmt/tm/ltm/virtual/',
-				'/mgmt/tm/ltm/policy'
+				'/mgmt/tm/ltm/policy',
+				'/mgmt/tm/sys/application/template'
 				}
 
 

@@ -329,7 +329,7 @@ Also the following boolean operator available::
 
 For more details I recommend to have a look at a python documentation.
 
-Loops - '#loop, #endloop'
+Loops - '#loop, #lastloop, #endloop'
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 With loops it is possible to create the same json objects several times with some adaptions in it. The end of the loop is marked with '#loopend'. It is possible to cascade loops.
@@ -362,6 +362,33 @@ Make sure that you leave one empty line in front of the '#loopend' otherwise you
 	}
 
 You can also use other list definition inside of the loop and it will follow the index of the loop list. If the list is shorter than the loop list, you will get a preprocessor error. If the list has just one element, only this one will be used.
+
+With '#lastloop' it is possible to catch the last iteration of a loop. This is helpful, if you would like to create a json property list, which is separated by comma. This means, the last line have to be created without any comma::
+
+	#define POOL_MEMBER_LIST 10.10.10.1:80 10.10.10.2:80 10.10.10.3:80
+	#
+	{
+	#loop POOL_MEMBER_LIST
+	  "poolMember": "POOL_MEMBER_LIST",
+	#lastloop
+	  "poolMember": "POOL_MEMBER_LIST"
+	}
+	#endloop
+
+The Result would be::
+
+	{
+	  "poolMember": "10.10.10.1:80",
+	  "poolMember": "10.10.10.2:80",
+	  "poolMember": "10.10.10.3:80"
+	}
+
+
+
+Include jb files - '#include'
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With '#include' another jb file can be loaded within a jb file. While it is possible to use '#include' inside an '#if' and '#loop' construct and to use such construct inside of the included jb file, it isn't possible to spread one '#if' and '#loop' construct over several jb files. I considered this as a bad design and I am not planning to include this capability.
 
 Preprocessor debugging
 ~~~~~~~~~~~~~~~~~~~~~~

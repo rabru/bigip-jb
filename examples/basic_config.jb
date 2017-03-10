@@ -1,3 +1,4 @@
+# DNS setup
 {
   "kind": "tm:sys:dns:dnsstate",
   "selfLink": "https://localhost/mgmt/tm/sys/dns?ver=12.1.1",
@@ -12,6 +13,7 @@
   ]
 }
 
+# NTP setup
 {
   "kind": "tm:sys:ntp:ntpstate",
   "selfLink": "https://localhost/mgmt/tm/sys/ntp?ver=12.1.1",
@@ -26,11 +28,13 @@
   }
 }
 
+# Hostname
 {
   "selfLink": "https://localhost/mgmt/tm/sys/global-settings?ver=12.1.1",
   "hostname": "bigip02.local"
 }
 
+# Max objects shown on the bigip GUI
 {
   "selfLink": "https://localhost/mgmt/tm/sys/db/ui.system.preferences.recordsperscreen?ver=12.0.0",
   "value": "100"

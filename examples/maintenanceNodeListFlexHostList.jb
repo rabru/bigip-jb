@@ -29,5 +29,5 @@
 #endif
 }
 
-#loopend
-#loopend
+#endloop
+#endloop

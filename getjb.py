@@ -329,7 +329,7 @@ def write_element(bigip, file, path, iteration, ref, objectList):
 					name = jelement.get('fullPath')
 					if name != None:
 						name = shared.add_CommonToName(name)
-						print "Name: %s" % name
+						#print "Name: %s" % name
 						searchPath = ref[2].get(ref[0])
 						if searchPath != None:
 							#print "SearchPath: %s" % searchPath
