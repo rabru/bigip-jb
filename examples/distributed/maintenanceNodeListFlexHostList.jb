@@ -1,9 +1,10 @@
 # Change several nodes to different states on several hosts #
 #############################################################
+# include the host list:
+#include HostList_vCMP_GUESTS.jb
+#############################################################
 # Options: "enable" "disable" "offine"                      #
 # 
-#define <<HOST_LIST>> bigip.mgmt.ip 172.16.8.62
-#
 #define STATE         "enable"     "disable"    "offline"
 #define <<NODE_NAME>> 10.10.10.201 10.10.10.202 10.10.10.203
 #define <<PARTITION>> Common

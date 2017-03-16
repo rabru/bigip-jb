@@ -1,7 +1,13 @@
-## bigip-jb v0.2.5
+## bigip-jb v0.2.7
 ###################################
 ## Release Notes
 
+v0.2.7:
+- preprocessor.py: Bugfix - Change filter for direct start of preprocessor.py
+- preprocessor.py: Bugfix - Increase file size; introduce MAX_FILE_SIZE = 500000
+- sendjb.py: Bugfix - Transfer GLOBAL_PATH towards preprocessor; preprocessor.GLOBAL_PATH = GLOBAL_PATH
+- sendjb.py: Add 'generation' property as sine for a POST request. 'fullPath' is not enough for /mgmt/tm/cloud/services/iapp/
+- getjb.py: Add empty line only if element is written (Add return value to write_element())
 
 v0.2.6:
  - preprocessor.py: Change #loopend to #endloop to adapt to the naming of #endif

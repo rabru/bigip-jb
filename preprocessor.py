@@ -16,6 +16,8 @@
 
 import sys, string
 
+MAX_FILE_SIZE = 500000
+
 def preprocessorExit(str):
 	exit("Preprocessor error: " + str)
 
@@ -267,7 +269,7 @@ def preprocessor(lineList, skip, skipAll, mode, result, loopPointer, loopName):
 						filename = GLOBAL_PATH + '/' + filename
 
         				f = open ( filename, 'r')
-        				fstr = f.read(100000)
+        				fstr = f.read(MAX_FILE_SIZE)
 
        					lList = fstr.split('\n')
 
@@ -321,7 +323,7 @@ def preprocessor(lineList, skip, skipAll, mode, result, loopPointer, loopName):
 preDEBUG = False
 preITERATIONS = 0	
 
-if sys.argv[0].find('preprocessor'):
+if sys.argv[0].find('preprocessor') >= 0:
 	preDEBUG = True
 	filename = sys.argv[1]
 	s = '/'

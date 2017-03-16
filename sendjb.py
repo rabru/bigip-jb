@@ -349,9 +349,11 @@ def create_element(bigip, jdata, path):
 	fullPath = jdata.get('fullPath')
 	command =  jdata.get('command') # command need to be POST
 	methods = jdata.get('methods')
+	generation = jdata.get('generation')	
+	remove_elements(jdata)
 	#if methods != None:
 	#	print "methods: %s" % methods
-	if fullPath == None and command == None: # This are always existing static elements or PATCH requests
+	if fullPath == None and command == None and generation == None: # This are always existing static elements or PATCH requests
 		#print "Number of properties in JSON object: %s" % len(jdata)
 		if len(jdata) <= MAX_PATCH_PROPERTIES: # We need just to change this property in the JSON object
 			if BIGIP_VERSION['digits'][0] != 11: # PATCH is needed
@@ -542,6 +544,7 @@ NEED_SAVE = False
 lineList = sts.split('\n')
 
 Result = [{}, ""]
+preprocessor.GLOBAL_PATH = GLOBAL_PATH
 preprocessor.preprocessor(lineList, False, False, "", Result, 0, "")
 
 items = Result[1].split('\n\n')
@@ -615,7 +618,7 @@ for item in items:
 		firstElement = False
 		path = get_path(jdata, iApp, partition)
        		#print "path: ", path
-        	remove_elements(jdata)
+        	#remove_elements(jdata)
                 if jdata.get('fullPath') != None:
 			fPath = jdata['fullPath']
 			fPath = shared.add_CommonToName(fPath)

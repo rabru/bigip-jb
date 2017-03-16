@@ -5,7 +5,9 @@
 # With the application setting it is possible to
 # add the configuration to an iApp without template.
 # 
-#define <<HOST_LIST>> bigip.mgmt.ip 172.16.8.62
+#####################################################
+# include the host list:
+#include HostList_vCMP_GUESTS.jb
 #
 ##
 #loop <<HOST_LIST>>
