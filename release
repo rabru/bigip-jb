@@ -2,6 +2,10 @@
 ###################################
 ## Release Notes
 
+v0.2.8:
+- getjb.py: Output will be attached, if the target jb file exist already.
+- restStructure.py: Add /mgmt/tm/net/vlan to EXPAND_SUBCOLLECTION_LIST
+
 v0.2.7:
 - preprocessor.py: Bugfix - Change filter for direct start of preprocessor.py
 - preprocessor.py: Bugfix - Increase file size; introduce MAX_FILE_SIZE = 500000

@@ -101,6 +101,7 @@ KIND_TO_OBJECT = {
 
 EXPAND_SUBCOLLECTION_LIST = { 	'/mgmt/tm/ltm/virtual/',
 				'/mgmt/tm/ltm/policy',
+				'/mgmt/tm/net/vlan',
 				'/mgmt/tm/sys/application/template'
 				}
 

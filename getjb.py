@@ -127,6 +127,10 @@ def exist_expectedProperties(jdata, ref):
         return True
 
 def write_json(file, j):
+	global ATTACHE_OFFSET
+	if ATTACHE_OFFSET:
+		write_sep(file)
+		ATTACHE_OFFSET = False
 	file.write(json.dumps(j, sort_keys = False, indent = 4, separators=(',', ': ')))
 
 def write_sep(file):
@@ -405,7 +409,10 @@ bigip.verify = False
 bigip.headers.update({'Content-Type' : 'application/json'})
 
 # Open json blob file
-f = open ( filename, 'w')
+f = open ( filename, 'a')
+# Check if this is an attachment to an existing file. then we need to print additional separator
+f.seek(0, 2)
+ATTACHE_OFFSET = f.tell() != 0
 
 objectList = []
 print "Gathering Objects:"
