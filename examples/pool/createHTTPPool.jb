@@ -1,0 +1,88 @@
+# Create http pool with monitor and nodes #
+###########################################
+#
+#define <<POOL_NAME>> http
+#define <<NODE_LIST>> 10.10.10.201 10.10.10.202 10.10.10.203
+##
+{
+    "kind": "jb-header",
+    "application": "",
+    "partition": "",
+    "parameters": {
+        "<<MONITOR_REQUEST>>": "GET /f5/index.php\\r\\n"
+    },
+    "transaction": "false"
+}
+
+{
+    "kind": "tm:ltm:monitor:http:httpstate",
+    "destination": "*:*",
+    "name": "<<POOL_NAME>>_mon",
+    "generation": 0,
+    "upInterval": 0,
+    "partition": "Common",
+    "timeout": 31,
+    "send": "<<MONITOR_REQUEST>>",
+    "interval": 10,
+    "timeUntilUp": 0,
+    "ipDscp": 0,
+    "defaultsFrom": "/Common/http",
+    "fullPath": "/Common/<<POOL_NAME>>_mon",
+    "manualResume": "disabled",
+    "transparent": "disabled",
+    "selfLink": "https://localhost/mgmt/tm/ltm/monitor/http/~Common~my_http_mon?ver=11.5.1",
+    "reverse": "disabled"
+}
+
+{
+    "generation": 795833,
+    "minActiveMembers": 0,
+    "ipTosToServer": "pass-through",
+    "loadBalancingMode": "round-robin",
+    "allowNat": "yes",
+    "queueDepthLimit": 0,
+    "membersReference": {
+        "isSubcollection": true,
+        "link": "https://localhost/mgmt/tm/ltm/pool/~Common~http_pool/members?ver=11.5.1"
+    },
+    "minUpMembers": 0,
+    "monitor": "/Common/<<POOL_NAME>>_mon ",
+    "slowRampTime": 10,
+    "minUpMembersAction": "failover",
+    "minUpMembersChecking": "disabled",
+    "queueTimeLimit": 0,
+    "linkQosToServer": "pass-through",
+    "queueOnConnectionLimit": "disabled",
+    "fullPath": "http_pool",
+    "kind": "tm:ltm:pool:poolstate",
+    "name": "<<POOL_NAME>>_pool",
+    "allowSnat": "yes",
+    "ipTosToClient": "pass-through",
+    "reselectTries": 0,
+    "selfLink": "https://localhost/mgmt/tm/ltm/pool/http_pool?ver=11.5.1",
+    "ignorePersistedWeight": "disabled",
+    "linkQosToClient": "pass-through"
+}
+#loop <<NODE_LIST>>
+
+{
+    "state": "up",
+    "kind": "tm:ltm:pool:members:membersstate",
+    "logging": "disabled",
+    "name": "<<NODE_LIST>>:80",
+    "ratio": 1,
+    "generation": 1,
+    "partition": "Common",
+    "inheritProfile": "enabled",
+    "rateLimit": "disabled",
+    "session": "monitor-enabled",
+    "dynamicRatio": 1,
+    "connectionLimit": 0,
+    "address": "<<NODE_LIST>>",
+    "priorityGroup": 0,
+    "fullPath": "/Common/<<NODE_LIST>>:80",
+    "selfLink": "https://localhost/mgmt/tm/ltm/pool/http_pool/members/~Common~Ralph_201:80?ver=11.5.1",
+    "monitor": "default"
+}
+#endloop
+

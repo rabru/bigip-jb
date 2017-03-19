@@ -5,6 +5,7 @@
 v0.2.8:
 - getjb.py: Output will be attached, if the target jb file exist already.
 - restStructure.py: Add /mgmt/tm/net/vlan to EXPAND_SUBCOLLECTION_LIST
+- sendjb.py: remove properties 'state' and 'session' only for nodes and pool member
 
 v0.2.7:
 - preprocessor.py: Bugfix - Change filter for direct start of preprocessor.py

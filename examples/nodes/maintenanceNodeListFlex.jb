@@ -1,14 +1,14 @@
 # Change several nodes to different states #
-########################################i###
-# Options: "enable" "disable" "offine"     #
+############################################
+# Options: "enable" "disable" "offline"    #
 # 
 #define STATE         "enable"     "disable"    "offline"
-#define <<NODE_NAME>> 10.10.10.201 10.10.10.202 10.10.10.203
+#define <<NODE_LIST>> 10.10.10.201 10.10.10.202 10.10.10.203
 #define <<PARTITION>> Common
 ##
-#loop <<NODE_NAME>>
+#loop <<NODE_LIST>>
 {
-  "selfLink": "https://localhost/mgmt/tm/ltm/node/~<<PARTITION>>~<<NODE_NAME>>?ver=11.5.1",
+  "selfLink": "https://localhost/mgmt/tm/ltm/node/~<<PARTITION>>~<<NODE_LIST>>?ver=11.5.1",
 #if STATE == "enable"
   "session": "user-enabled",
   "state": "user-up"

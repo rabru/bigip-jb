@@ -103,10 +103,11 @@ def remove_elements(data):
 		del data['selfLink']
 	if data.get('generation'):
 		del data['generation']
-        if data.get('state') and data.get('state').find("user-") != 0:
-                del data['state']
-        if data.get('session') and data.get('session').find("user-") != 0:
-                del data['session']
+	if data.get('kind') and ( data.get('kind').find("tm:ltm:node:") or data.get('kind').find("tm:ltm:pool:members:")):
+        	if data.get('state') and data.get('state').find("user-") != 0:
+                	del data['state']
+        	if data.get('session') and data.get('session').find("user-") != 0:
+                	del data['session']
         if data.get('appService'):
                 del data['appService']
 
