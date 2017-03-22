@@ -67,7 +67,7 @@ def parseInclude(str):
 	return str
 
 def preDEBUGoutput( element, response ):
-	if element.find('#if') == 0:
+	if element.find('#if') == 0 or element.find('#define') == 0:
 		iter = preITERATIONS
 	else:
 		iter = preITERATIONS - 1
@@ -108,7 +108,7 @@ def preprocessor(lineList, skip, skipAll, mode, result, loopPointer, loopName):
 		counter = counter + 1
 		#print "counter %s" % counter
 		# Replace #define parameter - #loop will be an exception since we need the parameter name there
-		if line.find("#loop ") != 0:
+		if line.find("#loop ") != 0 and line.find("#define ") != 0:
 			for prop in propDict:
 				#if prop != loopName: # Skip loopName
 				propLen = len(propDict[prop])
@@ -279,8 +279,9 @@ def preprocessor(lineList, skip, skipAll, mode, result, loopPointer, loopName):
 				        l = filename.split(sep)
 				        GLOBAL_PATH = sep.join(l[:-1])
 
-					preDEBUGoutput( line, "" )
-					preITERATIONS = preITERATIONS + 1
+                                        preITERATIONS = preITERATIONS + 1
+					if preDEBUG:
+						preDEBUGoutput( line, "" )
 					#counter = counter + 1
        					#Result = [{}, ""] # Parameters, Result, loopPointer
 
@@ -293,10 +294,11 @@ def preprocessor(lineList, skip, skipAll, mode, result, loopPointer, loopName):
                                         else:
 						preprocessor(lList, False, False, "#include", result, 0, "")
 
+                                        if preDEBUG:
+                                                preDEBUGoutput( "#include", "end" )
 					preITERATIONS = preITERATIONS - 1
 					GLOBAL_PATH = lastGlobalPath
 					f.close()
-					preDEBUGoutput( "#include", "end" )
 
 			else: # it is a comment line
 				if preDEBUG:
@@ -332,7 +334,7 @@ if sys.argv[0].find('preprocessor') >= 0:
 	#print "GLOBAL: " + GLOBAL_PATH 
 	# Open json blob file
 	f = open ( filename, 'r')
-	str = f.read(100000)
+	str = f.read(MAX_FILE_SIZE)
 
 	lineList = str.split('\n')
 

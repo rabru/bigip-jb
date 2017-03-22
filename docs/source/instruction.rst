@@ -259,7 +259,7 @@ Host
 With the host property, you can preset the target BIG-IP. This will overwrite the given host of
 the sendjb.py command. Over this you can create a jb file designed for a specific target. But
 mainly I introduced the host property, to be able to send within one jb file the same configuration
-to several BIG-IP's. Please have a look at this `example <../../example/sendConfigurationHostList-Blank.jb>`_
+to several BIG-IP's. Please have a look at this `examples <https://github.com/rabru/bigip-jb/tree/master/examples/distributed>`_
 for more details.
 
 Preprocessor

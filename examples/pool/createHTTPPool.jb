@@ -81,7 +81,7 @@
     "address": "<<NODE_LIST>>",
     "priorityGroup": 0,
     "fullPath": "/Common/<<NODE_LIST>>:80",
-    "selfLink": "https://localhost/mgmt/tm/ltm/pool/http_pool/members/~Common~Ralph_201:80?ver=11.5.1",
+    "selfLink": "https://localhost/mgmt/tm/ltm/pool/<<POOL_NAME>>_pool/members/~Common~Ralph_201:80?ver=11.5.1",
     "monitor": "default"
 }
 #endloop

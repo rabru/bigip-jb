@@ -2,19 +2,19 @@
 #########################################
 # Options: "enable" "disable" "offline" #
 # 
-#define STATE "enable"
+#define <<STATE>> "enable"
 #define <<NODE>> 10.10.10.201
 #define <<PARTITION>> Common
 ##
 {
   "selfLink": "https://localhost/mgmt/tm/ltm/node/~<<PARTITION>>~<<NODE>>?ver=11.5.1",
-#if STATE == "enable"
+#if <<STATE>> == "enable"
   "session": "user-enabled",
   "state": "user-up"
-#elif STATE == "disable"
+#elif <<STATE>> == "disable"
   "session": "user-disabled",
   "state": "user-up"
-#elif STATE == "offline"
+#elif <<STATE>> == "offline"
   "session": "user-disabled",
   "state": "user-down"
 #endif

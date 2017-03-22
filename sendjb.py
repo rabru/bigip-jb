@@ -572,13 +572,12 @@ for item in items:
 	## jb-Header 
 	##
 	if jdata.get('kind') == 'jb-header':
+                # If transaction is open, we should finalize it now before we start a new json blob
+                if transID >= 0:
+                        commit_transaction(bigip, transID)
+                        transID = -1
 		save_config(bigip)
 		print "----- jb-header -----"
-		# If transaction is open, we should finalize it now before we start a new json blob
-		if transID >= 0:
-			commit_transaction(bigip, transID)
-			transID = -1
-
 		#erase_element_list(elements)
 		elements = create_element_list()
 
@@ -601,6 +600,8 @@ for item in items:
 		if jdata.get('application') != None and jdata.get('application') != "":
 			iApp = jdata['application'].encode('utf8', 'replace')
 			create_iApp(bigip, iApp, partition)
+		else:
+			iApp = ""
 
                 if jdata.get('transaction') != None and jdata.get('transaction') == "true":
 			transID = create_transaction(bigip)
