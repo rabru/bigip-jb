@@ -1,6 +1,33 @@
-## bigip-jb v0.2.5
+## bigip-jb v0.2.7
 ###################################
 ## Release Notes
+
+v0.2.8:
+- getjb.py: Output will be attached, if the target jb file exist already.
+- restStructure.py: Add /mgmt/tm/net/vlan to EXPAND_SUBCOLLECTION_LIST
+- sendjb.py: remove properties 'state' and 'session' only for nodes and pool member
+- sendjb.py: Bugfix - Transmit transaction before save
+- sendjb.py: Bugfix - Set iApp = "" if not set in jb-header
+- preprocessor.py: Do not replace anything in #define line, to allow redefinition of parameters
+- preprocessor.py: Adapt Debug logout for #define and #include 
+
+v0.2.7:
+- preprocessor.py: Bugfix - Change filter for direct start of preprocessor.py
+- preprocessor.py: Bugfix - Increase file size; introduce MAX_FILE_SIZE = 500000
+- sendjb.py: Bugfix - Transfer GLOBAL_PATH towards preprocessor; preprocessor.GLOBAL_PATH = GLOBAL_PATH
+- sendjb.py: Add 'generation' property as sine for a POST request. 'fullPath' is not enough for /mgmt/tm/cloud/services/iapp/
+- getjb.py: Add empty line only if element is written (Add return value to write_element())
+
+v0.2.6:
+ - preprocessor.py: Change #loopend to #endloop to adapt to the naming of #endif
+ - preprocessor.py: #include to import jb files
+ - sendjb.py: Set the GLOBAL_PATH variable to get the related path of the file to be able to address the include files.  
+ - sendjb.py: Include Error message: Already exists.
+ - sendjb.py: Save config changes. Introduce NEED_SAVE to track.
+ - restStructure.py: Add /mgmt/tm/sys/application/template to EXPAND_SUBCOLLECTION_LIST 
+ - sendjb.py: Increase MAX_FILE_SIZE to 500000 byte
+ - shared.py: Include Version format of v11.5.x
+ - preprocessor.py: Include the #lastloop function
 
 v0.2.5:
  - preprocessor.py: Transfer loop index to iteration (fix issue with nested #if)

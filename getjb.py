@@ -127,6 +127,10 @@ def exist_expectedProperties(jdata, ref):
         return True
 
 def write_json(file, j):
+	global ATTACHE_OFFSET
+	if ATTACHE_OFFSET:
+		write_sep(file)
+		ATTACHE_OFFSET = False
 	file.write(json.dumps(j, sort_keys = False, indent = 4, separators=(',', ': ')))
 
 def write_sep(file):
@@ -152,7 +156,7 @@ def write_element(bigip, file, path, iteration, ref, objectList):
         # Check, if the object is alreeady in the list.
 	if path in objectList:
 		# Skip creation by settion isWritten as True
-		isWritten = True
+		return False # Nothing is written
 	else:
 		# Load the object from the BIG-IP
 	        element = get_element(bigip, path)
@@ -166,7 +170,7 @@ def write_element(bigip, file, path, iteration, ref, objectList):
         		print path
 		else:
 			# Skip creation by settion isWritten as True
-			isWritten = True
+			return False # Nothing is written
 
 	#exceptions:
 	for item in restStructure.EXPAND_SUBCOLLECTION_LIST:
@@ -233,8 +237,8 @@ def write_element(bigip, file, path, iteration, ref, objectList):
 						if pstart != None:
 							path = concat_path(bigip, pstart, pname)
 							if path != None:
-								write_element(bigip, file, path, iteration + 1, ref, objectList)
-								write_sep(file)
+								if write_element(bigip, file, path, iteration + 1, ref, objectList):
+									write_sep(file)
 
                                 elif ref[1].find("items") == 0:
                                         #print "Item to get name: %s" % item
@@ -257,8 +261,8 @@ def write_element(bigip, file, path, iteration, ref, objectList):
 								else:
 									path = ""
 							if path != "":
-								write_element(bigip, file, path, iteration + 1, ref, objectList)
-								write_sep(file)
+								if write_element(bigip, file, path, iteration + 1, ref, objectList):
+									write_sep(file)
 
                                 elif ref[1].find("list") == 0:
                                         #print "Item to get name: %s" % item
@@ -280,8 +284,8 @@ def write_element(bigip, file, path, iteration, ref, objectList):
         	                                        	if pstart != None:
 									path = concat_path(bigip, pstart, path)
 									if path != None:
-                                	                			write_element(bigip, file, path, iteration + 1, ref, objectList)
-                                        	        			write_sep(file)
+                                	                			if write_element(bigip, file, path, iteration + 1, ref, objectList):
+                                        	        				write_sep(file)
 
                                 elif ref[1] == "and":
                                         #print "Item to get fPath: %s" % item
@@ -293,16 +297,15 @@ def write_element(bigip, file, path, iteration, ref, objectList):
                                                 for mon in monList:
                                                         if mon != "" and mon != "and":
                                                                 #print "Mon first : %s" % mon
-
                                                 		path = shared.nameToPath(mon)
  	           						pstart = ref[2].get(type)
         	                                                if pstart != None:
                 	                                                path = concat_path(bigip, pstart, path)
                                                 			if path != None:
-										write_element(bigip, file, path, iteration + 1, ref, objectList)
-                                                				write_sep(file)
-
-                                                                
+										#print "Path mon: %s" % path
+										if write_element(bigip, file, path, iteration + 1, ref, objectList):
+                                                					write_sep(file)
+ 
                                 elif ref[1] == "sub":
                                         #print "Item to get fPath: %s" % item
                                         name = jelement.get('fullPath')
@@ -329,7 +332,7 @@ def write_element(bigip, file, path, iteration, ref, objectList):
 					name = jelement.get('fullPath')
 					if name != None:
 						name = shared.add_CommonToName(name)
-						print "Name: %s" % name
+						#print "Name: %s" % name
 						searchPath = ref[2].get(ref[0])
 						if searchPath != None:
 							#print "SearchPath: %s" % searchPath
@@ -358,8 +361,8 @@ def write_element(bigip, file, path, iteration, ref, objectList):
 													list1[-1] = s2.join(list2)
 													jvs['destination'] = s1.join(list1)
 													# Write virtual server elements 
-													write_element(bigip, file, searchPath + "/" + vsName, iteration + 1, ref, objectList)
-													write_sep(file)
+													if write_element(bigip, file, searchPath + "/" + vsName, iteration + 1, ref, objectList):
+														write_sep(file)
 
 
 	if not isWritten:
@@ -367,7 +370,7 @@ def write_element(bigip, file, path, iteration, ref, objectList):
 	### add sub objects behind the main object, since it depends on it:
 	if sub != "":
 		file.write(sub)
-	
+	return True
 
 ##############
 #### MAIN ####
@@ -406,7 +409,10 @@ bigip.verify = False
 bigip.headers.update({'Content-Type' : 'application/json'})
 
 # Open json blob file
-f = open ( filename, 'w')
+f = open ( filename, 'a')
+# Check if this is an attachment to an existing file. then we need to print additional separator
+f.seek(0, 2)
+ATTACHE_OFFSET = f.tell() != 0
 
 objectList = []
 print "Gathering Objects:"

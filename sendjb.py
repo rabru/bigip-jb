@@ -25,7 +25,7 @@ import shared
 import preprocessor
 
 # define program-wide variables
-MAX_FILE_SIZE = 100000
+MAX_FILE_SIZE = 500000
 MAX_PATCH_PROPERTIES = 2
 
 def clean_path(path):
@@ -103,10 +103,11 @@ def remove_elements(data):
 		del data['selfLink']
 	if data.get('generation'):
 		del data['generation']
-        if data.get('state') and data.get('state').find("user-") != 0:
-                del data['state']
-        if data.get('session') and data.get('session').find("user-") != 0:
-                del data['session']
+	if data.get('kind') and ( data.get('kind').find("tm:ltm:node:") or data.get('kind').find("tm:ltm:pool:members:")):
+        	if data.get('state') and data.get('state').find("user-") != 0:
+                	del data['state']
+        	if data.get('session') and data.get('session').find("user-") != 0:
+                	del data['session']
         if data.get('appService'):
                 del data['appService']
 
@@ -152,7 +153,7 @@ def is_element_draft(jdata):
 def get_path(jdata, appName, partition):
 	## Gets the path information out of the selfLink.
 	## Partitions and application names will be placed in
-	selfLink = jdata.get('selfLink')
+	selfLink = "%s" % jdata.get('selfLink')
 	fullPath = jdata.get('fullPath')
 	pos = selfLink.find('//');
 	start = selfLink.find('/', pos + 2)
@@ -343,11 +344,17 @@ def adapt_reference_path(jdata, elements, appName, partition):
 
 
 def create_element(bigip, jdata, path):
+	global NEED_SAVE
+
 	Method = "POST"
 	fullPath = jdata.get('fullPath')
 	command =  jdata.get('command') # command need to be POST
 	methods = jdata.get('methods')
-	if fullPath == None and command == None: # This are always existing static elements or PATCH requests
+	generation = jdata.get('generation')	
+	remove_elements(jdata)
+	#if methods != None:
+	#	print "methods: %s" % methods
+	if fullPath == None and command == None and generation == None: # This are always existing static elements or PATCH requests
 		#print "Number of properties in JSON object: %s" % len(jdata)
 		if len(jdata) <= MAX_PATCH_PROPERTIES: # We need just to change this property in the JSON object
 			if BIGIP_VERSION['digits'][0] != 11: # PATCH is needed
@@ -373,27 +380,38 @@ def create_element(bigip, jdata, path):
                 response = bigip.post('%s%s' % (BIGIP_URL_BASE, path), data=json.dumps(jdata))
 
         if response.status_code == 401:
-		exit("Authentication failed!")
+                exit("Authentication failed!")
+
+	jcontent = json.loads(response.content)
+	message = ""
+ 
+	if response.status_code == 409 and jcontent.get('message').find("already exists") >= 0:
+ 		message = " --> Failed: Already exists"
 	elif response.status_code != 200:
                 print "Response: %s" % response.content
 		print "%s: %s" % ( Method, path)
 		print "Content:"
                 print json.dumps(jdata, sort_keys = True, indent = 4, separators=(',', ': '))	
                 return False
+
+	if fullPath == None:
+		fullPath = ""
 	else:
-		if fullPath == None:
-			fullPath = ""
-		else:
-			fullPath = "/" + fullPath.split('/')[-1]
-		if Method == 'POST':
-			action = 'Created '
-		else:
-			action = 'Modified'
-		print "%s: %s%s" % (action, path, fullPath)
+		fullPath = "/" + fullPath.split('/')[-1]
+	if Method == 'POST':
+		action = 'Created '
+	else:
+		action = 'Modified'
+	print "%s: %s%s%s" % (action, path, fullPath, message)
+
+        if message == "":
+                NEED_SAVE = True
 
         return True
 
 def create_iApp(bigip, name, partition):
+	global NEED_SAVE
+
 	## iApps are not working together with transactions. Therefore we need to clean up here
 	if bigip.headers.get('X-F5-REST-Coordination-Id') != None:
 		del bigip.headers['X-F5-REST-Coordination-Id']
@@ -404,16 +422,24 @@ def create_iApp(bigip, name, partition):
 	content =  "{\"name\": \"" + name + "\"," + str + "\"template\": \"\"}"
 	#print "content: %s" % content
 	#print '%s/mgmt/tm/sys/application/service' % BIGIP_URL_BASE
+	message = ""
 	response = bigip.post('%s/mgmt/tm/sys/application/service' % BIGIP_URL_BASE, data=content)
-        if response.status_code != 200:
+        if response.status_code == 401:
+                exit("Authentication failed!")
+	jcontent = json.loads(response.content)
+	if response.status_code == 400 and jcontent.get('message').find("already exists") >= 0:
+                message = " --> Failed: Already exists"
+        elif response.status_code != 200:
                 print "Response: %s" % response.content
                 return False
-	else:
-		print "Created : iApp %s" % name
+	print "Created : iApp %s%s" % (name, message)
+
+	if message == "":
+		NEED_SAVE = True
+
         return True
 
 def create_transaction(bigip):
-        print "Create Transaction"
         content =  "{}"
         response = bigip.post('%s/mgmt/tm/transaction' % BIGIP_URL_BASE, data=content)
         #print "Response: %s" % response.content
@@ -422,8 +448,10 @@ def create_transaction(bigip):
 		transID = jdata.get('transId')
 		if transID != None:
 			bigip.headers.update({'X-F5-REST-Coordination-Id' : str(transID) })
+			print "Created : Transaction"
 			return transID
 	
+	print "Created : Transaction --> Failed"
 	return -1
 
 def commit_transaction(bigip, transID):
@@ -437,6 +465,21 @@ def commit_transaction(bigip, transID):
 		print "Response: %s" % response.content
 		return False
 	return True
+
+def save_config(bigip):
+	global NEED_SAVE
+
+	if NEED_SAVE:
+        	content =  "{\"command\":\"save\"}"
+        	response = bigip.post('%s/mgmt/tm/sys/config' % BIGIP_URL_BASE, data=content)
+        	#print "Response: %s" % response.content
+        	if response.status_code == 200:
+			print "--- Configuration Saved ---"
+			NEED_SAVE = False
+			return True
+		else:
+			print "--- Save Config --> Failed!!!"
+        		return False
 
 def replace_parameters(item, parameters):
 	for param in parameters:
@@ -478,9 +521,14 @@ lastHost = ""
 BIGIP_URL_BASE = ""
 BIGIP_VERSION = "" 
 
+
+sep = '/'
+l = filename.split(sep)
+GLOBAL_PATH = sep.join(l[:-1])
+
 # Open json blob file
 f = open ( filename, 'r')
-sts = f.read(100000)
+sts = f.read(MAX_FILE_SIZE)
 
 # Default Partition
 partition = ""
@@ -491,10 +539,13 @@ transID = -1
 # No iApp
 iApp = ""
 
+# Need to save config
+NEED_SAVE = False
 
 lineList = sts.split('\n')
 
 Result = [{}, ""]
+preprocessor.GLOBAL_PATH = GLOBAL_PATH
 preprocessor.preprocessor(lineList, False, False, "", Result, 0, "")
 
 items = Result[1].split('\n\n')
@@ -521,12 +572,12 @@ for item in items:
 	## jb-Header 
 	##
 	if jdata.get('kind') == 'jb-header':
+                # If transaction is open, we should finalize it now before we start a new json blob
+                if transID >= 0:
+                        commit_transaction(bigip, transID)
+                        transID = -1
+		save_config(bigip)
 		print "----- jb-header -----"
-		# If transaction is open, we should finalize it now before we start a new json blob
-		if transID >= 0:
-			commit_transaction(bigip, transID)
-			transID = -1
-
 		#erase_element_list(elements)
 		elements = create_element_list()
 
@@ -549,6 +600,8 @@ for item in items:
 		if jdata.get('application') != None and jdata.get('application') != "":
 			iApp = jdata['application'].encode('utf8', 'replace')
 			create_iApp(bigip, iApp, partition)
+		else:
+			iApp = ""
 
                 if jdata.get('transaction') != None and jdata.get('transaction') == "true":
 			transID = create_transaction(bigip)
@@ -564,9 +617,10 @@ for item in items:
 		if BIGIP_URL_BASE == "":
 			BIGIP_URL_BASE = 'https://%s' % bigipAddr
 			BIGIP_VERSION = shared.get_version(bigip, BIGIP_URL_BASE)
+		firstElement = False
 		path = get_path(jdata, iApp, partition)
        		#print "path: ", path
-        	remove_elements(jdata)
+        	#remove_elements(jdata)
                 if jdata.get('fullPath') != None:
 			fPath = jdata['fullPath']
 			fPath = shared.add_CommonToName(fPath)
@@ -604,6 +658,10 @@ for item in items:
 
 if transID >= 0:
 	commit_transaction(bigip, transID)
+
+save_config(bigip)
+
+f.close()
 
 #print_element_list(elements)
 

@@ -1,0 +1,248 @@
+# HTTPS SSL offloading, using the appsvcs_integration_v2.0.002 iApp 
+###################################################################
+#define <<iApp_NAME>> https_demo_app
+#define <<VIP>>       10.128.10.24
+#define <<NODE_LIST>> 10.10.10.211 10.10.10.212
+#define <<CERT_NAME>> default
+#define <<PARTITION>> Common
+###################################################################
+# Optional second VIP. Useful for additional IPv6 deployment
+# Replace None with IP address
+#define <<VIP-2>> None
+###################################################################
+# deploy iApp Template in Common:
+#include appsvcs_integration_v2.0.002_template.jb
+
+{
+  "name": "~<<PARTITION>>~<<iApp_NAME>>.app~<<iApp_NAME>>",
+  "description": "Deployed by appsvcs_integration_v2.0.002 in Standalone mode on 03/13/17 21:53:17",
+  "template": "appsvcs_integration_v2.0.002",
+  "virtualServerReferences": [
+    {
+      "link": "https://localhost/mgmt/tm/cloud/ltm/virtual-servers/40158"
+    }
+  ],
+  "vars": {
+    "extensions__Field1": "",
+    "extensions__Field2": "",
+    "extensions__Field3": "",
+    "feature__easyL4Firewall": "auto",
+    "feature__insertXForwardedFor": "auto",
+    "feature__redirectToHTTPS": "auto",
+    "feature__securityEnableHSTS": "disabled",
+    "feature__sslEasyCipher": "disabled",
+    "feature__statsHTTP": "auto",
+    "feature__statsTLS": "auto",
+    "iapp__apmDeployMode": "preserve-bypass",
+    "iapp__appStats": "enabled",
+    "iapp__asmDeployMode": "preserve-bypass",
+    "iapp__logLevel": "7",
+    "iapp__mode": "auto",
+    "iapp__routeDomain": "auto",
+    "iapp__strictUpdates": "enabled",
+    "l7policy__defaultASM": "bypass",
+    "l7policy__defaultL7DOS": "bypass",
+    "l7policy__strategy": "/Common/first-match",
+    "pool__DefaultPoolIndex": "0",
+    "pool__MemberDefaultPort": "",
+    "pool__addr": "<<VIP>>",
+    "pool__mask": "255.255.255.255",
+    "pool__port": "443",
+    "vs__AdvOptions": "",
+    "vs__AdvPolicies": "",
+    "vs__AdvProfiles": "",
+    "vs__ConnectionLimit": "0",
+    "vs__Description": "",
+    "vs__IpProtocol": "tcp",
+    "vs__Irules": "",
+    "vs__Name": "https_app_default_vs_443",
+    "vs__OptionConnectionMirroring": "disabled",
+    "vs__OptionSourcePort": "preserve",
+    "vs__ProfileAccess": "",
+    "vs__ProfileAnalytics": "",
+    "vs__ProfileClientProtocol": "/Common/tcp-wan-optimized",
+    "vs__ProfileClientSSL": "",
+    "vs__ProfileClientSSLAdvOptions": "",
+    "vs__ProfileClientSSLCert": "/Common/<<CERT_NAME>>.crt",
+    "vs__ProfileClientSSLChain": "",
+    "vs__ProfileClientSSLCipherString": "DEFAULT",
+    "vs__ProfileClientSSLKey": "/Common/<<CERT_NAME>>.key",
+    "vs__ProfileCompression": "/Common/httpcompression",
+    "vs__ProfileConnectivity": "",
+    "vs__ProfileDefaultPersist": "/Common/cookie_pers",
+    "vs__ProfileFallbackPersist": "/Common/source_addr",
+    "vs__ProfileHTTP": "create:type=http;defaults-from=/Common/http;insert-xforwarded-for=enabled",
+    "vs__ProfileOneConnect": "/Common/oneconnect",
+    "vs__ProfilePerRequest": "",
+    "vs__ProfileRequestLogging": "",
+    "vs__ProfileSecurityDoS": "",
+    "vs__ProfileSecurityIPBlacklist": "none",
+    "vs__ProfileSecurityLogProfiles": "",
+    "vs__ProfileServerProtocol": "/Common/tcp-lan-optimized",
+    "vs__ProfileServerSSL": "",
+    "vs__RouteAdv": "disabled",
+    "vs__SNATConfig": "automap",
+    "vs__SourceAddress": "0.0.0.0/0",
+    "vs__VirtualAddrAdvOptions": ""
+  },
+  "tables": {
+    "feature__easyL4FirewallBlacklist": {
+      "columns": [
+        "CIDRRange"
+      ],
+      "rows": [
+        [
+          ""
+        ]
+      ]
+    },
+    "feature__easyL4FirewallSourceList": {
+      "columns": [
+        "CIDRRange"
+      ],
+      "rows": [
+        [
+          "0.0.0.0/0"
+        ]
+      ]
+    },
+    "l7policy__rulesAction": {
+      "columns": [
+        "Group",
+        "Target",
+        "Parameter"
+      ],
+      "rows": [
+        [
+          "",
+          "",
+          ""
+        ]
+      ]
+    },
+    "l7policy__rulesMatch": {
+      "columns": [
+        "Group",
+        "Operand",
+        "Negate",
+        "Condition",
+        "Value",
+        "CaseSensitive",
+        "Missing"
+      ],
+      "rows": [
+        [
+          "",
+          "",
+          "no",
+          "equals",
+          "",
+          "no",
+          "no"
+        ]
+      ]
+    },
+    "monitor__Monitors": {
+      "columns": [
+        "Index",
+        "Name",
+        "Type",
+        "Options"
+      ],
+      "rows": [
+        [
+          "0",
+          "http",
+          "http",
+          ""
+        ]
+      ]
+    },
+    "pool__Members": {
+      "columns": [
+        "Index",
+        "IPAddress",
+        "Port",
+        "ConnectionLimit",
+        "Ratio",
+        "PriorityGroup",
+        "State",
+        "AdvOptions"
+      ],
+      "rows": [
+#loop <<NODE_LIST>>
+        [
+          "0",
+          "<<NODE_LIST>>",
+          "80",
+          "0",
+          "1",
+          "0",
+          "enabled",
+          ""
+        ],
+#lastloop
+        [
+          "0",
+          "<<NODE_LIST>>",
+          "80",
+          "0",
+          "1",
+          "0",
+          "enabled",
+          ""
+        ]
+#endloop
+      ]
+    },
+    "pool__Pools": {
+      "columns": [
+        "Index",
+        "Name",
+        "Description",
+        "LbMethod",
+        "Monitor",
+        "AdvOptions"
+      ],
+      "rows": [
+        [
+          "0",
+          "",
+          "",
+          "round-robin",
+          "0",
+          ""
+        ]
+      ]
+    },
+    "vs__BundledItems": {
+      "columns": [
+        "Resource"
+      ],
+      "rows": [
+        [
+          ""
+        ]
+      ]
+    },
+    "vs__Listeners": {
+      "columns": [
+        "Listener",
+        "Destination"
+      ],
+      "rows": [
+        [
+#if '<<VIP-2>>' != 'None'
+          "<<VIP-2>>:443",
+#else
+          "",
+#endif
+          ""
+        ]
+      ]
+    }
+  },
+  "generation": 0,
+  "lastUpdateMicros": 0,
+  "selfLink": "https://localhost/mgmt/tm/cloud/services/iapp/https_app"
+}

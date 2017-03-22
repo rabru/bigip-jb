@@ -34,10 +34,12 @@ def nameToPath(name):
 def get_version(bigip, basePath):
 	version = { 'digit': [0, 0, 0], 'string': '', 'number': 0.0, 'product': ''}
         response = bigip.get(basePath + '/mgmt/tm/sys/version')
+	#print "Response: %s" % response.status_code
         if response.status_code != 200:
-                #print "Response: %s" % response.content
                 return version
-	buf = json.loads(response.content).get('entries')
+	jcontent = json.loads(response.content)
+	buf = jcontent.get('entries')
+	buf_v11_5 = jcontent.get('apiRawValues')
 	if buf != None:
 		buf = buf.get('https://localhost/mgmt/tm/sys/version/0')
 		if buf != None:
@@ -58,7 +60,19 @@ def get_version(bigip, basePath):
                                                 buf1 = buf1.get('description')
                                                 if buf1 != None:
                                                         version['product'] = buf1
-		
+	# Get Version for v11.5.x
+	elif buf_v11_5 != None:
+		buf_v11_5 = buf_v11_5.get('apiAnonymous')
+		if buf_v11_5 != None:
+			list = buf_v11_5.split('\n')
+			for line in list:
+				if line.find('  Product') == 0:
+					version['product'] = line[11:]
+				elif line.find('  Version') == 0:
+					version['string'] = line[11:]
+					version['digits'] = version['string'].split('.')
+					version['number'] = float(version['digits'][0]) + float(version['digits'][1]) * 0.1 + float(version['digits'][2]) * 0.001
+						
 
 	print "Host %s: %s v%s" % ( basePath.split('//')[1], version['product'], version['string'] )
         return version
