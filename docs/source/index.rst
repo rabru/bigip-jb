@@ -4,7 +4,7 @@ bigip-jb
 
 .. toctree::
    :maxdepth: 3
-   :caption: Contents:
+   :caption: Contents
 
    introduction.rst
    instruction.rst

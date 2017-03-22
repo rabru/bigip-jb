@@ -1,5 +1,5 @@
-Introduction:
-=============
+Introduction
+============
 
 This script can be helpful in the daily manually administrative jobs on a BIG-IP and is therefore targeted to any BIG-IP administrator and consultant. Even if it is based on REST, it is not ment ot be used for any automation or orchestration integration, since it is purely targeted for the manual administration.
 
